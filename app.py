@@ -30,8 +30,15 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(
-    "statement.json",
+creds = google_creds_raw = os.getenv("GOOGLE_CREDENTIALS")
+
+if not google_creds_raw:
+    raise Exception("Missing GOOGLE_CREDENTIALS")
+
+google_creds = json.loads(google_creds_raw)
+
+creds = ServiceAccountCredentials.from_json_keyfile_dict(
+    google_creds,
     scope
 )
 
