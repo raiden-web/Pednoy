@@ -1,50 +1,74 @@
 from flask import Flask, request
-
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 
 from datetime import datetime
+import json
 import os
 
 app = Flask(__name__)
 
 # =========================
-# LINE TOKEN
+# LINE CONFIG
 # =========================
 
-LINE_CHANNEL_ACCESS_TOKEN = "2010102408"
-LINE_CHANNEL_SECRET = "6a37be4915370520fed202987ff3840a"
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)
+line_bot_api = None
+handler = None
+
+if LINE_CHANNEL_ACCESS_TOKEN and LINE_CHANNEL_SECRET:
+    line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
+    handler = WebhookHandler(LINE_CHANNEL_SECRET)
+else:
+    print("⚠️ LINE ENV NOT FOUND")
 
 # =========================
 # GOOGLE SHEETS
 # =========================
 
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
+sheet = None
 
-creds = google_creds_raw = os.getenv("GOOGLE_CREDENTIALS")
+try:
 
-if not google_creds_raw:
-    raise Exception("Missing GOOGLE_CREDENTIALS")
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
 
-google_creds = json.loads(google_creds_raw)
+    google_creds_raw = os.getenv("GOOGLE_CREDENTIALS")
 
-creds = ServiceAccountCredentials.from_json_keyfile_dict(
-    google_creds,
-    scope
-)
+    if google_creds_raw:
 
-client = gspread.authorize(creds)
+        google_creds = json.loads(google_creds_raw)
 
-sheet = client.open("Statement").sheet1
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            google_creds,
+            scope
+        )
+
+        client = gspread.authorize(creds)
+
+        sheet = client.open("Statement").sheet1
+
+        print("✅ Google Sheets Connected")
+
+    else:
+        print("⚠️ GOOGLE_CREDENTIALS NOT FOUND")
+
+except Exception as e:
+    print("❌ Google Sheets Error:", e)
+
+# =========================
+# HOME
+# =========================
+
+@app.route("/")
+def home():
+    return "LINE BOT RUNNING"
 
 # =========================
 # CALLBACK
@@ -53,7 +77,10 @@ sheet = client.open("Statement").sheet1
 @app.route("/callback", methods=['POST'])
 def callback():
 
-    signature = request.headers['X-Line-Signature']
+    if not handler:
+        return "LINE not configured", 500
+
+    signature = request.headers.get('X-Line-Signature', '')
 
     body = request.get_data(as_text=True)
 
@@ -65,116 +92,144 @@ def callback():
 # MESSAGE EVENT
 # =========================
 
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
+if handler:
 
-    text = event.message.text
+    @handler.add(MessageEvent, message=TextMessage)
+    def handle_message(event):
 
-    try:
+        text = event.message.text
 
-        # =====================
-        # รายรับ
-        # =====================
+        reply = ""
 
-        if text.startswith("ขาย"):
+        try:
 
-            parts = text.split()
+            # =====================
+            # รายรับ
+            # =====================
 
-            item = parts[1]
-            qty = parts[2]
-            amount = parts[3]
+            if text.startswith("ขาย"):
 
-            sheet.append_row([
-                str(datetime.now()),
-                "รายรับ",
-                item,
-                qty,
-                amount
-            ])
+                if not sheet:
+                    reply = "ยังไม่เชื่อม Google Sheets"
 
-            reply = f"บันทึกยอดขายแล้ว +{amount} บาท"
+                else:
 
-        # =====================
-        # รายจ่าย
-        # =====================
+                    parts = text.split()
 
-        elif text.startswith("จ่าย"):
+                    if len(parts) < 4:
+                        reply = "รูปแบบ: ขาย สินค้า จำนวน ราคา"
 
-            parts = text.split()
+                    else:
 
-            item = parts[1]
-            amount = parts[2]
+                        item = parts[1]
+                        qty = parts[2]
+                        amount = parts[3]
 
-            sheet.append_row([
-                str(datetime.now()),
-                "รายจ่าย",
-                item,
-                "-",
-                amount
-            ])
+                        sheet.append_row([
+                            str(datetime.now()),
+                            "รายรับ",
+                            item,
+                            qty,
+                            amount
+                        ])
 
-            reply = f"บันทึกรายจ่ายแล้ว -{amount} บาท"
+                        reply = f"บันทึกยอดขายแล้ว +{amount} บาท"
 
-        # =====================
-        # สรุปวันนี้
-        # =====================
+            # =====================
+            # รายจ่าย
+            # =====================
 
-        elif text == "สรุปวันนี้":
+            elif text.startswith("จ่าย"):
 
-            records = sheet.get_all_records()
+                if not sheet:
+                    reply = "ยังไม่เชื่อม Google Sheets"
 
-            income = 0
-            expense = 0
+                else:
 
-            today = datetime.now().strftime("%Y-%m-%d")
+                    parts = text.split()
 
-            for row in records:
+                    if len(parts) < 3:
+                        reply = "รูปแบบ: จ่าย รายการ ราคา"
 
-                if today in row['เวลา']:
+                    else:
 
-                    if row['ประเภท'] == 'รายรับ':
-                        income += int(row['ยอดเงิน'])
+                        item = parts[1]
+                        amount = parts[2]
 
-                    elif row['ประเภท'] == 'รายจ่าย':
-                        expense += int(row['ยอดเงิน'])
+                        sheet.append_row([
+                            str(datetime.now()),
+                            "รายจ่าย",
+                            item,
+                            "-",
+                            amount
+                        ])
 
-            profit = income - expense
+                        reply = f"บันทึกรายจ่ายแล้ว -{amount} บาท"
 
-            reply = (
-                f"สรุปวันนี้\n"
-                f"รายรับ: {income} บาท\n"
-                f"รายจ่าย: {expense} บาท\n"
-                f"กำไร: {profit} บาท"
+            # =====================
+            # สรุปวันนี้
+            # =====================
+
+            elif text == "สรุปวันนี้":
+
+                if not sheet:
+                    reply = "ยังไม่เชื่อม Google Sheets"
+
+                else:
+
+                    records = sheet.get_all_records()
+
+                    income = 0
+                    expense = 0
+
+                    today = datetime.now().strftime("%Y-%m-%d")
+
+                    for row in records:
+
+                        if today in str(row.get('เวลา', '')):
+
+                            if row.get('ประเภท') == 'รายรับ':
+                                income += int(row.get('ยอดเงิน', 0))
+
+                            elif row.get('ประเภท') == 'รายจ่าย':
+                                expense += int(row.get('ยอดเงิน', 0))
+
+                    profit = income - expense
+
+                    reply = (
+                        f"สรุปวันนี้\n"
+                        f"รายรับ: {income}\n"
+                        f"รายจ่าย: {expense}\n"
+                        f"กำไร: {profit}"
+                    )
+
+            else:
+
+                reply = (
+                    "คำสั่ง:\n"
+                    "ขาย สินค้า จำนวน ราคา\n"
+                    "จ่าย รายการ ราคา\n"
+                    "สรุปวันนี้"
+                )
+
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=reply)
             )
 
-        # =====================
-        # HELP
-        # =====================
+        except Exception as e:
 
-        else:
-
-            reply = (
-                "คำสั่งที่ใช้ได้\n"
-                "ขาย สินค้า จำนวน ราคา\n"
-                "จ่าย รายการ ราคา\n"
-                "สรุปวันนี้"
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=f"Error: {str(e)}")
             )
-
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=reply)
-        )
-
-    except Exception as e:
-
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=f"Error: {str(e)}")
-        )
 
 # =========================
-# RUN APP
+# RUN
 # =========================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+
+    port = int(os.environ.get("PORT", 5000))
+
+    app.run(host="0.0.0.0", port=port)
