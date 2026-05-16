@@ -1,6 +1,13 @@
 from flask import Flask, request
 from linebot import LineBotApi, WebhookHandler
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.models import (
+    MessageEvent,
+    TextMessage,
+    TextSendMessage,
+    QuickReply,
+    QuickReplyButton,
+    MessageAction
+)
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 
@@ -100,8 +107,32 @@ if handler:
         text = event.message.text
 
         reply = ""
+        quick_reply = QuickReply(
+         items=[
+            QuickReplyButton(
+                action=MessageAction(
+                label="💰 รายรับ",
+                text="ขาย "
+                )
+            ),
 
-        try:
+             QuickReplyButton(
+                action=MessageAction(
+                label="💸 รายจ่าย",
+                text="จ่าย "
+              )
+            ),
+
+           QuickReplyButton(
+                action=MessageAction(
+                label="📊 สรุปวันนี้",
+                text="สรุปวันนี้"
+               )
+           )
+        ]
+   )
+
+    try:
 
             # =====================
             # รายรับ
@@ -214,9 +245,11 @@ if handler:
 
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text=reply)
+                TextSendMessage(
+                    text=reply,
+                    quick_reply=quick_reply
+                )
             )
-
         except Exception as e:
 
             line_bot_api.reply_message(
