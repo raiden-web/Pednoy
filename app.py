@@ -157,7 +157,7 @@ if handler:
                         amount = parts[2]
 
                         sheet.append_row([
-                            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "รายจ่าย",
                             item,
                             "-",
