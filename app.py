@@ -1,100 +1,3 @@
-from flask import Flask, request
-from linebot import LineBotApi, WebhookHandler
-from linebot.models import (
-    MessageEvent,
-    TextMessage,
-    TextSendMessage,
-    QuickReply,
-    QuickReplyButton,
-    MessageAction
-)
-from oauth2client.service_account import ServiceAccountCredentials
-import gspread
-
-from datetime import datetime
-import json
-import os
-
-app = Flask(__name__)
-
-# =========================
-# LINE CONFIG
-# =========================
-
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
-
-line_bot_api = None
-handler = None
-
-if LINE_CHANNEL_ACCESS_TOKEN and LINE_CHANNEL_SECRET:
-    line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-    handler = WebhookHandler(LINE_CHANNEL_SECRET)
-else:
-    print("⚠️ LINE ENV NOT FOUND")
-
-# =========================
-# GOOGLE SHEETS
-# =========================
-
-sheet = None
-
-try:
-
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive"
-    ]
-
-    google_creds_raw = os.getenv("GOOGLE_CREDENTIALS")
-
-    if google_creds_raw:
-
-        google_creds = json.loads(google_creds_raw)
-
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            google_creds,
-            scope
-        )
-
-        client = gspread.authorize(creds)
-
-        sheet = client.open("Statement").sheet1
-
-        print("✅ Google Sheets Connected")
-
-    else:
-        print("⚠️ GOOGLE_CREDENTIALS NOT FOUND")
-
-except Exception as e:
-    print("❌ Google Sheets Error:", e)
-
-# =========================
-# HOME
-# =========================
-
-@app.route("/")
-def home():
-    return "LINE BOT RUNNING"
-
-# =========================
-# CALLBACK
-# =========================
-
-@app.route("/callback", methods=['POST'])
-def callback():
-
-    if not handler:
-        return "LINE not configured", 500
-
-    signature = request.headers.get('X-Line-Signature', '')
-
-    body = request.get_data(as_text=True)
-
-    handler.handle(body, signature)
-
-    return 'OK'
-
 # =========================
 # MESSAGE EVENT
 # =========================
@@ -107,32 +10,35 @@ if handler:
         text = event.message.text
 
         reply = ""
+
         quick_reply = QuickReply(
-         items=[
-            QuickReplyButton(
-                action=MessageAction(
-                label="💰 รายรับ",
-                text="ขาย "
+            items=[
+
+                QuickReplyButton(
+                    action=MessageAction(
+                        label="💰 รายรับ",
+                        text="ขาย "
+                    )
+                ),
+
+                QuickReplyButton(
+                    action=MessageAction(
+                        label="💸 รายจ่าย",
+                        text="จ่าย "
+                    )
+                ),
+
+                QuickReplyButton(
+                    action=MessageAction(
+                        label="📊 สรุปวันนี้",
+                        text="สรุปวันนี้"
+                    )
                 )
-            ),
 
-             QuickReplyButton(
-                action=MessageAction(
-                label="💸 รายจ่าย",
-                text="จ่าย "
-              )
-            ),
+            ]
+        )
 
-           QuickReplyButton(
-                action=MessageAction(
-                label="📊 สรุปวันนี้",
-                text="สรุปวันนี้"
-               )
-           )
-        ]
-   )
-
-    try:
+        try:
 
             # =====================
             # รายรับ
@@ -250,19 +156,10 @@ if handler:
                     quick_reply=quick_reply
                 )
             )
+
         except Exception as e:
 
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text=f"Error: {str(e)}")
             )
-
-# =========================
-# RUN
-# =========================
-
-if __name__ == "__main__":
-
-    port = int(os.environ.get("PORT", 5000))
-
-    app.run(host="0.0.0.0", port=port)
