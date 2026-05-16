@@ -1,3 +1,4 @@
+print("NEW VERSION")
 from flask import Flask, request
 
 from linebot import LineBotApi, WebhookHandler
