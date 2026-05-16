@@ -14,7 +14,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 
 from datetime import datetime
-
 import json
 import os
 
@@ -38,7 +37,6 @@ if LINE_CHANNEL_ACCESS_TOKEN and LINE_CHANNEL_SECRET:
     print("✅ LINE CONNECTED")
 
 else:
-
     print("⚠️ LINE ENV NOT FOUND")
 
 # =========================
@@ -69,15 +67,20 @@ try:
 
         sheet = client.open("Statement").sheet1
 
-        print("✅ GOOGLE SHEETS CONNECTED")
+        print("✅ Google Sheets Connected")
 
     else:
-
         print("⚠️ GOOGLE_CREDENTIALS NOT FOUND")
 
 except Exception as e:
 
-    print("❌ GOOGLE SHEETS ERROR:", e)
+    print("❌ Google Sheets Error:", e)
+
+# =========================
+# USER STATE
+# =========================
+
+user_states = {}
 
 # =========================
 # HOME
@@ -85,7 +88,6 @@ except Exception as e:
 
 @app.route("/")
 def home():
-
     return "LINE BOT RUNNING"
 
 # =========================
@@ -115,24 +117,30 @@ if handler:
     @handler.add(MessageEvent, message=TextMessage)
     def handle_message(event):
 
-        text = event.message.text
+        text = event.message.text.strip()
+
+        user_id = event.source.user_id
 
         reply = ""
+
+        # =========================
+        # QUICK REPLY
+        # =========================
 
         quick_reply = QuickReply(
             items=[
 
                 QuickReplyButton(
                     action=MessageAction(
-                        label="💰 รายรับ",
-                        text="ขาย "
+                        label="💰 เพิ่มรายรับ",
+                        text="เพิ่มรายรับ"
                     )
                 ),
 
                 QuickReplyButton(
                     action=MessageAction(
-                        label="💸 รายจ่าย",
-                        text="จ่าย "
+                        label="💸 เพิ่มรายจ่าย",
+                        text="เพิ่มรายจ่าย"
                     )
                 ),
 
@@ -149,71 +157,138 @@ if handler:
         try:
 
             # =====================
-            # รายรับ
+            # เริ่มเพิ่มรายรับ
             # =====================
 
-            if text.startswith("ขาย"):
+            if text == "เพิ่มรายรับ":
 
-                if not sheet:
+                user_states[user_id] = {
+                    "step": "income_item"
+                }
 
-                    reply = "ยังไม่เชื่อม Google Sheets"
-
-                else:
-
-                    parts = text.split()
-
-                    if len(parts) < 4:
-
-                        reply = "รูปแบบ: ขาย สินค้า จำนวน ราคา"
-
-                    else:
-
-                        item = parts[1]
-                        qty = parts[2]
-                        amount = parts[3]
-
-                        sheet.append_row([
-                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "รายรับ",
-                            item,
-                            qty,
-                            amount
-                        ])
-
-                        reply = f"บันทึกยอดขายแล้ว +{amount} บาท"
+                reply = "กรอกชื่อสินค้า"
 
             # =====================
-            # รายจ่าย
+            # กรอกชื่อสินค้า
             # =====================
 
-            elif text.startswith("จ่าย"):
+            elif (
+                user_id in user_states and
+                user_states[user_id]["step"] == "income_item"
+            ):
 
-                if not sheet:
+                user_states[user_id]["item"] = text
 
-                    reply = "ยังไม่เชื่อม Google Sheets"
+                user_states[user_id]["step"] = "income_qty"
 
-                else:
+                reply = "กรอกจำนวน"
 
-                    parts = text.split()
+            # =====================
+            # กรอกจำนวน
+            # =====================
 
-                    if len(parts) < 3:
+            elif (
+                user_id in user_states and
+                user_states[user_id]["step"] == "income_qty"
+            ):
 
-                        reply = "รูปแบบ: จ่าย รายการ ราคา"
+                user_states[user_id]["qty"] = text
 
-                    else:
+                user_states[user_id]["step"] = "income_amount"
 
-                        item = parts[1]
-                        amount = parts[2]
+                reply = "กรอกราคา"
 
-                        sheet.append_row([
-                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "รายจ่าย",
-                            item,
-                            "-",
-                            amount
-                        ])
+            # =====================
+            # กรอกราคา
+            # =====================
 
-                        reply = f"บันทึกรายจ่ายแล้ว -{amount} บาท"
+            elif (
+                user_id in user_states and
+                user_states[user_id]["step"] == "income_amount"
+            ):
+
+                item = user_states[user_id]["item"]
+
+                qty = user_states[user_id]["qty"]
+
+                amount = text
+
+                if sheet:
+
+                    sheet.append_row([
+                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "รายรับ",
+                        item,
+                        qty,
+                        amount
+                    ])
+
+                del user_states[user_id]
+
+                reply = (
+                    f"✅ บันทึกรายรับสำเร็จ\n\n"
+                    f"สินค้า: {item}\n"
+                    f"จำนวน: {qty}\n"
+                    f"ยอดเงิน: {amount} บาท"
+                )
+
+            # =====================
+            # เริ่มเพิ่มรายจ่าย
+            # =====================
+
+            elif text == "เพิ่มรายจ่าย":
+
+                user_states[user_id] = {
+                    "step": "expense_item"
+                }
+
+                reply = "กรอกรายการ"
+
+            # =====================
+            # กรอกรายการรายจ่าย
+            # =====================
+
+            elif (
+                user_id in user_states and
+                user_states[user_id]["step"] == "expense_item"
+            ):
+
+                user_states[user_id]["item"] = text
+
+                user_states[user_id]["step"] = "expense_amount"
+
+                reply = "กรอกจำนวนเงิน"
+
+            # =====================
+            # กรอกเงินรายจ่าย
+            # =====================
+
+            elif (
+                user_id in user_states and
+                user_states[user_id]["step"] == "expense_amount"
+            ):
+
+                item = user_states[user_id]["item"]
+
+                amount = text
+
+                if sheet:
+
+                    sheet.append_row([
+                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "รายจ่าย",
+                        item,
+                        "-",
+                        amount
+                    ])
+
+                del user_states[user_id]
+
+                reply = (
+                    f"✅ บันทึกรายจ่ายสำเร็จ\n\n"
+                    f"รายการ: {item}\n"
+                    f"ยอดเงิน: {amount} บาท"
+                )
 
             # =====================
             # สรุปวันนี้
@@ -223,7 +298,7 @@ if handler:
 
                 if not sheet:
 
-                    reply = "ยังไม่เชื่อม Google Sheets"
+                    reply = "⚠️ ยังไม่เชื่อม Google Sheets"
 
                 else:
 
@@ -249,23 +324,23 @@ if handler:
                     profit = income - expense
 
                     reply = (
-                        f"📊 สรุปวันนี้\n"
-                        f"รายรับ: {income} บาท\n"
-                        f"รายจ่าย: {expense} บาท\n"
-                        f"กำไร: {profit} บาท"
+                        f"📊 สรุปวันนี้\n\n"
+                        f"💰 รายรับ: {income} บาท\n"
+                        f"💸 รายจ่าย: {expense} บาท\n"
+                        f"📈 กำไร: {profit} บาท"
                     )
 
             # =====================
-            # HELP
+            # DEFAULT
             # =====================
 
             else:
 
                 reply = (
-                    "คำสั่ง:\n"
-                    "ขาย สินค้า จำนวน ราคา\n"
-                    "จ่าย รายการ ราคา\n"
-                    "สรุปวันนี้"
+                    "📌 คำสั่งที่ใช้ได้\n\n"
+                    "💰 เพิ่มรายรับ\n"
+                    "💸 เพิ่มรายจ่าย\n"
+                    "📊 สรุปวันนี้"
                 )
 
             line_bot_api.reply_message(
@@ -281,7 +356,7 @@ if handler:
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(
-                    text=f"ERROR: {str(e)}"
+                    text=f"❌ ERROR:\n{str(e)}"
                 )
             )
 
@@ -293,4 +368,7 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 5000))
 
-    app.run(host="0.0.0.0", port=port)
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
