@@ -126,7 +126,7 @@ if handler:
                         amount = parts[3]
 
                         sheet.append_row([
-                            str(datetime.now()),
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "รายรับ",
                             item,
                             qty,
@@ -157,7 +157,7 @@ if handler:
                         amount = parts[2]
 
                         sheet.append_row([
-                            str(datetime.now()),
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                             "รายจ่าย",
                             item,
                             "-",
