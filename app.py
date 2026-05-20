@@ -4,7 +4,6 @@ from flask import Flask, request
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import (
     MessageEvent,
-    FollowEvent,
     TextMessage,
     TextSendMessage,
     QuickReply,
@@ -71,7 +70,7 @@ except Exception as e:
 user_states = {}
 
 # =========================
-# QUICK REPLY (ใช้ร่วมกันทั้งระบบ)
+# QUICK REPLY
 # =========================
 
 def get_quick_reply():
@@ -88,13 +87,6 @@ def get_quick_reply():
             ),
         ]
     )
-
-# =========================
-# BOT DISCLAIMER (แจ้งเตือนทุกครั้ง)
-# =========================
-
-BOT_NOTICE = "🤖 Bot นี้ใช้สำหรับบันทึกบัญชีเท่านั้น ไม่สามารถสนทนาทั่วไปได้\n"
-BOT_DIVIDER = "─────────────────\n"
 
 # =========================
 # HOME
@@ -124,35 +116,19 @@ def callback():
 
 if handler:
 
-    # =====================
-    # FOLLOW EVENT (เพิ่มเพื่อน)
-    # =====================
-
-    @handler.add(FollowEvent)
-    def handle_follow(event):
-        welcome = (
-            "👋 สวัสดีครับ!\n\n"
-            + BOT_NOTICE
-            + BOT_DIVIDER
-            + "📌 คำสั่งที่ใช้ได้\n"
-            "💰 เพิ่มรายรับ\n"
-            "💸 เพิ่มรายจ่าย\n"
-            "📊 สรุปวันนี้"
-        )
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=welcome, quick_reply=get_quick_reply())
-        )
-
-    # =====================
-    # MESSAGE EVENT
-    # =====================
-
     @handler.add(MessageEvent, message=TextMessage)
     def handle_message(event):
 
         text = event.message.text.strip()
         user_id = event.source.user_id
+
+        # คำสั่งที่บอทตอบได้
+        VALID_COMMANDS = ["เพิ่มรายรับ", "เพิ่มรายจ่าย", "สรุปวันนี้"]
+
+        # ถ้าไม่ได้อยู่ใน flow และไม่ใช่คำสั่ง → เงียบ ไม่ตอบ
+        if user_id not in user_states and text not in VALID_COMMANDS:
+            return
+
         reply = ""
 
         try:
@@ -163,11 +139,7 @@ if handler:
 
             if text == "เพิ่มรายรับ":
                 user_states[user_id] = {"step": "income_item"}
-                reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + "กรอกชื่อสินค้า"
-                )
+                reply = "กรอกชื่อสินค้า"
 
             # =====================
             # กรอกชื่อสินค้า (รายรับ)
@@ -179,11 +151,7 @@ if handler:
             ):
                 user_states[user_id]["item"] = text
                 user_states[user_id]["step"] = "income_qty"
-                reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + "กรอกจำนวน"
-                )
+                reply = "กรอกจำนวน"
 
             # =====================
             # กรอกจำนวน (รายรับ)
@@ -195,11 +163,7 @@ if handler:
             ):
                 user_states[user_id]["qty"] = text
                 user_states[user_id]["step"] = "income_amount"
-                reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + "กรอกราคา"
-                )
+                reply = "กรอกราคา"
 
             # =====================
             # กรอกราคา (รายรับ)
@@ -225,9 +189,7 @@ if handler:
                 del user_states[user_id]
 
                 reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + f"✅ บันทึกรายรับสำเร็จ\n\n"
+                    f"✅ บันทึกรายรับสำเร็จ\n\n"
                     f"สินค้า: {item}\n"
                     f"จำนวน: {qty}\n"
                     f"ยอดเงิน: {amount} บาท"
@@ -239,11 +201,7 @@ if handler:
 
             elif text == "เพิ่มรายจ่าย":
                 user_states[user_id] = {"step": "expense_item"}
-                reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + "กรอกชื่อรายการ"
-                )
+                reply = "กรอกชื่อรายการ"
 
             # =====================
             # กรอกชื่อรายการ (รายจ่าย)
@@ -255,11 +213,7 @@ if handler:
             ):
                 user_states[user_id]["item"] = text
                 user_states[user_id]["step"] = "expense_amount"
-                reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + "กรอกจำนวนเงิน"
-                )
+                reply = "กรอกจำนวนเงิน"
 
             # =====================
             # กรอกเงิน (รายจ่าย)
@@ -284,9 +238,7 @@ if handler:
                 del user_states[user_id]
 
                 reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + f"✅ บันทึกรายจ่ายสำเร็จ\n\n"
+                    f"✅ บันทึกรายจ่ายสำเร็จ\n\n"
                     f"รายการ: {item}\n"
                     f"ยอดเงิน: {amount} บาท"
                 )
@@ -298,11 +250,7 @@ if handler:
             elif text == "สรุปวันนี้":
 
                 if not sheet:
-                    reply = (
-                        BOT_NOTICE
-                        + BOT_DIVIDER
-                        + "⚠️ ยังไม่เชื่อม Google Sheets"
-                    )
+                    reply = "⚠️ ยังไม่เชื่อม Google Sheets"
                 else:
                     records = sheet.get_all_records()
                     income = 0
@@ -319,32 +267,17 @@ if handler:
                     profit = income - expense
 
                     reply = (
-                        BOT_NOTICE
-                        + BOT_DIVIDER
-                        + f"📊 สรุปวันนี้\n\n"
+                        f"📊 สรุปวันนี้\n\n"
                         f"💰 รายรับ:  {income:,} บาท\n"
                         f"💸 รายจ่าย: {expense:,} บาท\n"
                         f"📈 กำไร:    {profit:,} บาท"
                     )
 
-            # =====================
-            # DEFAULT (ข้อความอื่นๆ)
-            # =====================
-
-            else:
-                reply = (
-                    BOT_NOTICE
-                    + BOT_DIVIDER
-                    + "📌 คำสั่งที่ใช้ได้\n\n"
-                    "💰 เพิ่มรายรับ\n"
-                    "💸 เพิ่มรายจ่าย\n"
-                    "📊 สรุปวันนี้"
+            if reply:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=reply, quick_reply=get_quick_reply())
                 )
-
-            line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text=reply, quick_reply=get_quick_reply())
-            )
 
         except Exception as e:
             line_bot_api.reply_message(
