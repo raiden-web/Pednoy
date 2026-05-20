@@ -6,9 +6,7 @@ from linebot.models import (
     MessageEvent,
     TextMessage,
     TextSendMessage,
-    QuickReply,
-    QuickReplyButton,
-    MessageAction
+    
 )
 
 from oauth2client.service_account import ServiceAccountCredentials
@@ -68,25 +66,6 @@ except Exception as e:
 # =========================
 
 user_states = {}
-
-# =========================
-# QUICK REPLY
-# =========================
-
-def get_quick_reply():
-    return QuickReply(
-        items=[
-            QuickReplyButton(
-                action=MessageAction(label="💰 เพิ่มรายรับ", text="เพิ่มรายรับ")
-            ),
-            QuickReplyButton(
-                action=MessageAction(label="💸 เพิ่มรายจ่าย", text="เพิ่มรายจ่าย")
-            ),
-            QuickReplyButton(
-                action=MessageAction(label="📊 สรุปวันนี้", text="สรุปวันนี้")
-            ),
-        ]
-    )
 
 # =========================
 # HOME
@@ -276,7 +255,7 @@ if handler:
             if reply:
                 line_bot_api.reply_message(
                     event.reply_token,
-                    TextSendMessage(text=reply, quick_reply=get_quick_reply())
+                    TextSendMessage(text=reply)
                 )
 
         except Exception as e:
