@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>บันทึกรายการ</title>
+<script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: #06c755;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header span {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #fff;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .tab {
+    padding: 14px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 500;
+    color: #888;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    color: #06c755;
+    border-bottom-color: #06c755;
+  }
+
+  .form {
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    background: #fff;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 16px;
+    color: #1a1a1a;
+    outline: none;
+    transition: border 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .field input:focus {
+    border-color: #06c755;
+  }
+
+  .total-box {
+    background: #e8f8ef;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .total-box span:first-child {
+    font-size: 14px;
+    color: #0a7a3a;
+  }
+
+  .total-box span:last-child {
+    font-size: 20px;
+    font-weight: 600;
+    color: #0a7a3a;
+  }
+
+  .total-box.expense {
+    background: #fdecea;
+  }
+
+  .total-box.expense span {
+    color: #c0392b;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    border: none;
+    background: #06c755;
+    color: #fff;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-top: 4px;
+  }
+
+  .submit-btn:active { opacity: 0.8; }
+  .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  .submit-btn.expense-btn { background: #e74c3c; }
+
+  .success-box {
+    display: none;
+    margin: 0 16px;
+    background: #e8f8ef;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .success-box .icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+
+  .success-box p {
+    font-size: 15px;
+    color: #0a7a3a;
+    font-weight: 500;
+  }
+
+  .error-box {
+    display: none;
+    margin: 0 16px;
+    background: #fdecea;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #c0392b;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" onclick="closeLiff()" style="cursor:pointer">
+    <line x1="19" y1="12" x2="5" y2="12"></line>
+    <polyline points="12 19 5 12 12 5"></polyline>
+  </svg>
+  <span>บันทึกรายการ</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-income" onclick="switchTab('income')">💰 รายรับ</div>
+  <div class="tab" id="tab-expense" onclick="switchTab('expense')">💸 รายจ่าย</div>
+</div>
+
+<div id="errorBox" class="error-box"></div>
+<div id="successBox" class="success-box">
+  <div class="icon">✅</div>
+  <p id="successMsg"></p>
+</div>
+
+<!-- INCOME FORM -->
+<div id="form-income" class="form">
+  <div class="field">
+    <label>ชื่อสินค้า</label>
+    <input type="text" id="income-item" placeholder="เช่น ข้าวมันไก่" inputmode="text">
+  </div>
+  <div class="field">
+    <label>จำนวน</label>
+    <input type="number" id="income-qty" placeholder="0" inputmode="numeric" min="1" value="1" oninput="calcTotal()">
+  </div>
+  <div class="field">
+    <label>ราคาต่อชิ้น (บาท)</label>
+    <input type="number" id="income-price" placeholder="0" inputmode="decimal" oninput="calcTotal()">
+  </div>
+  <div class="total-box" id="income-total-box">
+    <span>รวม</span>
+    <span id="income-total">0 บาท</span>
+  </div>
+  <button class="submit-btn" id="income-btn" onclick="submitIncome()">บันทึกรายรับ</button>
+</div>
+
+<!-- EXPENSE FORM -->
+<div id="form-expense" class="form" style="display:none">
+  <div class="field">
+    <label>ชื่อรายการ</label>
+    <input type="text" id="expense-item" placeholder="เช่น ค่าวัตถุดิบ" inputmode="text">
+  </div>
+  <div class="field">
+    <label>จำนวนเงิน (บาท)</label>
+    <input type="number" id="expense-amount" placeholder="0" inputmode="decimal">
+  </div>
+  <div class="total-box expense" id="expense-total-box">
+    <span>รายจ่าย</span>
+    <span id="expense-total">0 บาท</span>
+  </div>
+  <button class="submit-btn expense-btn" id="expense-btn" onclick="submitExpense()">บันทึกรายจ่าย</button>
+</div>
+
+<script>
+let currentTab = 'income';
+let liffReady = false;
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: "{{ liff_id }}" });
+    liffReady = true;
+    if (!liff.isLoggedIn()) liff.login();
+  } catch (e) {
+    console.error('LIFF init error:', e);
+  }
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-income').classList.toggle('active', tab === 'income');
+  document.getElementById('tab-expense').classList.toggle('active', tab === 'expense');
+  document.getElementById('form-income').style.display = tab === 'income' ? 'flex' : 'none';
+  document.getElementById('form-expense').style.display = tab === 'expense' ? 'flex' : 'none';
+  hideMessages();
+}
+
+function calcTotal() {
+  const qty = parseFloat(document.getElementById('income-qty').value) || 0;
+  const price = parseFloat(document.getElementById('income-price').value) || 0;
+  const total = qty * price;
+  document.getElementById('income-total').textContent = total.toLocaleString('th-TH') + ' บาท';
+
+  const expAmt = parseFloat(document.getElementById('expense-amount').value) || 0;
+  document.getElementById('expense-total').textContent = expAmt.toLocaleString('th-TH') + ' บาท';
+}
+
+document.getElementById('expense-amount').addEventListener('input', calcTotal);
+
+function hideMessages() {
+  document.getElementById('successBox').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+}
+
+function showSuccess(msg) {
+  document.getElementById('successMsg').textContent = msg;
+  document.getElementById('successBox').style.display = 'block';
+  document.getElementById('errorBox').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+function showError(msg) {
+  document.getElementById('errorBox').textContent = '❌ ' + msg;
+  document.getElementById('errorBox').style.display = 'block';
+  document.getElementById('successBox').style.display = 'none';
+}
+
+async function submitIncome() {
+  const item = document.getElementById('income-item').value.trim();
+  const qty = document.getElementById('income-qty').value.trim();
+  const price = document.getElementById('income-price').value.trim();
+
+  if (!item || !qty || !price) { showError('กรุณากรอกข้อมูลให้ครบ'); return; }
+
+  const total = parseFloat(qty) * parseFloat(price);
+  const btn = document.getElementById('income-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังบันทึก...';
+
+  try {
+    const res = await fetch('/api/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'รายรับ', item, qty, amount: total })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showSuccess(`บันทึกรายรับสำเร็จ\n${item} x${qty} = ${total.toLocaleString()} บาท`);
+      document.getElementById('income-item').value = '';
+      document.getElementById('income-qty').value = '1';
+      document.getElementById('income-price').value = '';
+      document.getElementById('income-total').textContent = '0 บาท';
+    } else {
+      showError(data.error || 'บันทึกไม่สำเร็จ');
+    }
+  } catch (e) {
+    showError('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'บันทึกรายรับ';
+}
+
+async function submitExpense() {
+  const item = document.getElementById('expense-item').value.trim();
+  const amount = document.getElementById('expense-amount').value.trim();
+
+  if (!item || !amount) { showError('กรุณากรอกข้อมูลให้ครบ'); return; }
+
+  const btn = document.getElementById('expense-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังบันทึก...';
+
+  try {
+    const res = await fetch('/api/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'รายจ่าย', item, qty: '-', amount: parseFloat(amount) })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showSuccess(`บันทึกรายจ่ายสำเร็จ\n${item} = ${parseFloat(amount).toLocaleString()} บาท`);
+      document.getElementById('expense-item').value = '';
+      document.getElementById('expense-amount').value = '';
+      document.getElementById('expense-total').textContent = '0 บาท';
+    } else {
+      showError(data.error || 'บันทึกไม่สำเร็จ');
+    }
+  } catch (e) {
+    showError('เชื่อมต่อไม่ได้ กรุณาลองใหม่');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'บันทึกรายจ่าย';
+}
+
+function closeLiff() {
+  if (liffReady) liff.closeWindow();
+}
+
+initLiff();
+</script>
+</body>
+</html>
