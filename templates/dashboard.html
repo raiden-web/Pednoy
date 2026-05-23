@@ -1,6 +1,709 @@
-project/
-├── app.py
-├── templates/
-│   └── dashboard.html   ← ใหม่
-├── requirements.txt
-└── Procfile
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - บัญชีรายรับรายจ่าย</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: rgba(0,0,0,0.08);
+    --text: #1a1916;
+    --text2: #6b6960;
+    --text3: #9c9b96;
+    --green: #1D9E75;
+    --green-bg: #E1F5EE;
+    --red: #D85A30;
+    --red-bg: #FAECE7;
+    --amber: #BA7517;
+    --amber-bg: #FAEEDA;
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+  }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .header-brand .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .header-date {
+    font-size: 13px;
+    color: var(--text3);
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* DATE FILTER */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover { background: var(--surface2); }
+
+  .filter-btn.active {
+    background: var(--text);
+    color: #fff;
+    border-color: var(--text);
+  }
+
+  /* STAT CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .stat-card.income::before { background: var(--green); }
+  .stat-card.expense::before { background: var(--red); }
+  .stat-card.profit::before { background: var(--amber); }
+  .stat-card.count::before { background: var(--blue); }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 6px;
+  }
+
+  .stat-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-top: 6px;
+  }
+
+  .income .stat-pill { background: var(--green-bg); color: var(--green); }
+  .expense .stat-pill { background: var(--red-bg); color: var(--red); }
+  .profit .stat-pill { background: var(--amber-bg); color: var(--amber); }
+  .count .stat-pill { background: var(--blue-bg); color: var(--blue); }
+
+  /* CHARTS ROW */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 700px) {
+    .charts-row { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  /* TABLE */
+  .table-card {
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+
+  .table-header {
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .table-search {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    width: 180px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th {
+    padding: 10px 1.25rem;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    background: var(--surface2);
+  }
+
+  td {
+    padding: 12px 1.25rem;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  tr:hover td { background: var(--surface2); }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge-income { background: var(--green-bg); color: var(--green); }
+  .badge-expense { background: var(--red-bg); color: var(--red); }
+
+  .amount-income { color: var(--green); font-weight: 600; }
+  .amount-expense { color: var(--red); font-weight: 600; }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text3);
+    font-size: 14px;
+  }
+
+  /* LOADING */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text3);
+    font-size: 14px;
+    gap: 8px;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--text2);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ERROR */
+  .error-box {
+    background: var(--red-bg);
+    color: var(--red);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    font-size: 14px;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 12px 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .page-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-btn:hover { background: var(--surface2); }
+  .page-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .refresh-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .refresh-btn:hover { background: var(--surface2); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="dot"></div>
+    Dashboard รายรับ-รายจ่าย
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <span class="header-date" id="lastUpdated"></span>
+    <button class="refresh-btn" onclick="loadData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+      </svg>
+      รีเฟรช
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <div id="errorBox" class="error-box"></div>
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('today', this)">วันนี้</button>
+    <button class="filter-btn" onclick="setFilter('week', this)">สัปดาห์นี้</button>
+    <button class="filter-btn" onclick="setFilter('month', this)">เดือนนี้</button>
+    <button class="filter-btn" onclick="setFilter('all', this)">ทั้งหมด</button>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats-grid">
+    <div class="stat-card income">
+      <div class="stat-label">รายรับ</div>
+      <div class="stat-value" id="totalIncome">—</div>
+      <div class="stat-sub">บาท</div>
+      <span class="stat-pill" id="incomeCount">— รายการ</span>
+    </div>
+    <div class="stat-card expense">
+      <div class="stat-label">รายจ่าย</div>
+      <div class="stat-value" id="totalExpense">—</div>
+      <div class="stat-sub">บาท</div>
+      <span class="stat-pill" id="expenseCount">— รายการ</span>
+    </div>
+    <div class="stat-card profit">
+      <div class="stat-label">กำไรสุทธิ</div>
+      <div class="stat-value" id="totalProfit">—</div>
+      <div class="stat-sub">บาท</div>
+      <span class="stat-pill" id="profitMargin">— %</span>
+    </div>
+    <div class="stat-card count">
+      <div class="stat-label">รายการทั้งหมด</div>
+      <div class="stat-value" id="totalCount">—</div>
+      <div class="stat-sub">รายการ</div>
+      <span class="stat-pill" id="topItem">สินค้าขายดี: —</span>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">รายรับ vs รายจ่าย รายวัน</div>
+      <div style="position: relative; height: 200px;">
+        <canvas id="barChart" role="img" aria-label="แผนภูมิแสดงรายรับและรายจ่ายรายวัน">กำลังโหลด...</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">สัดส่วนรายจ่าย</div>
+      <div style="display: flex; align-items: center; justify-content: center; position: relative; height: 200px;">
+        <canvas id="donutChart" role="img" aria-label="แผนภูมิวงกลมแสดงสัดส่วนรายจ่าย">กำลังโหลด...</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-header">
+      <h2>รายการทั้งหมด</h2>
+      <input class="table-search" type="text" placeholder="ค้นหา..." id="searchInput" oninput="filterTable()">
+    </div>
+    <div id="tableBody">
+      <div class="loading"><div class="spinner"></div> กำลังโหลด...</div>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div>
+
+<script>
+let allRecords = [];
+let filteredRecords = [];
+let currentFilter = 'today';
+let currentPage = 1;
+const PER_PAGE = 15;
+let barChart = null;
+let donutChart = null;
+
+async function loadData() {
+  try {
+    document.getElementById('errorBox').style.display = 'none';
+    document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div> กำลังโหลด...</div>';
+
+    const res = await fetch('/api/data');
+    const json = await res.json();
+
+    if (json.error) throw new Error(json.error);
+
+    allRecords = json.records || [];
+    document.getElementById('lastUpdated').textContent = 'อัพเดต: ' + new Date().toLocaleTimeString('th-TH');
+    applyFilter(currentFilter);
+
+  } catch (e) {
+    const box = document.getElementById('errorBox');
+    box.style.display = 'block';
+    box.textContent = '❌ โหลดข้อมูลไม่สำเร็จ: ' + e.message;
+    document.getElementById('tableBody').innerHTML = '<div class="empty">ไม่สามารถโหลดข้อมูลได้</div>';
+  }
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPage = 1;
+  applyFilter(f);
+}
+
+function applyFilter(f) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  filteredRecords = allRecords.filter(r => {
+    if (!r['เวลา']) return false;
+    const d = new Date(r['เวลา'].replace(' ', 'T'));
+    if (f === 'today') {
+      const rd = new Date(d); rd.setHours(0,0,0,0);
+      return rd.getTime() === today.getTime();
+    } else if (f === 'week') {
+      const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+      return d >= weekAgo;
+    } else if (f === 'month') {
+      return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    }
+    return true;
+  });
+
+  updateStats();
+  updateCharts();
+  renderTable();
+}
+
+function updateStats() {
+  const income = filteredRecords.filter(r => r['ประเภท'] === 'รายรับ');
+  const expense = filteredRecords.filter(r => r['ประเภท'] === 'รายจ่าย');
+
+  const totalIn = income.reduce((s, r) => s + parseFloat(r['ยอดเงิน'] || 0), 0);
+  const totalEx = expense.reduce((s, r) => s + parseFloat(r['ยอดเงิน'] || 0), 0);
+  const profit = totalIn - totalEx;
+  const margin = totalIn > 0 ? Math.round((profit / totalIn) * 100) : 0;
+
+  document.getElementById('totalIncome').textContent = totalIn.toLocaleString('th-TH');
+  document.getElementById('totalExpense').textContent = totalEx.toLocaleString('th-TH');
+  document.getElementById('totalProfit').textContent = profit.toLocaleString('th-TH');
+  document.getElementById('totalCount').textContent = filteredRecords.length.toLocaleString();
+  document.getElementById('incomeCount').textContent = income.length + ' รายการ';
+  document.getElementById('expenseCount').textContent = expense.length + ' รายการ';
+  document.getElementById('profitMargin').textContent = margin + '%';
+
+  const itemCount = {};
+  income.forEach(r => {
+    const item = r['สินค้า/รายการ'] || r['item'] || '-';
+    itemCount[item] = (itemCount[item] || 0) + 1;
+  });
+  const topItem = Object.entries(itemCount).sort((a,b) => b[1]-a[1])[0];
+  document.getElementById('topItem').textContent = topItem ? topItem[0] : '-';
+}
+
+function updateCharts() {
+  // Group by date
+  const byDate = {};
+  filteredRecords.forEach(r => {
+    const d = r['เวลา'] ? r['เวลา'].slice(0,10) : 'ไม่ระบุ';
+    if (!byDate[d]) byDate[d] = { income: 0, expense: 0 };
+    const amt = parseFloat(r['ยอดเงิน'] || 0);
+    if (r['ประเภท'] === 'รายรับ') byDate[d].income += amt;
+    else byDate[d].expense += amt;
+  });
+
+  const dates = Object.keys(byDate).sort();
+  const incomeData = dates.map(d => byDate[d].income);
+  const expenseData = dates.map(d => byDate[d].expense);
+
+  const dateLabels = dates.map(d => {
+    const parts = d.split('-');
+    return parts.length === 3 ? parts[2] + '/' + parts[1] : d;
+  });
+
+  if (barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: dateLabels.length ? dateLabels : ['ไม่มีข้อมูล'],
+      datasets: [
+        {
+          label: 'รายรับ',
+          data: incomeData.length ? incomeData : [0],
+          backgroundColor: '#1D9E75cc',
+          borderRadius: 4
+        },
+        {
+          label: 'รายจ่าย',
+          data: expenseData.length ? expenseData : [0],
+          backgroundColor: '#D85A30cc',
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Sarabun' }, color: '#9c9b96' } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { family: 'Sarabun' }, color: '#9c9b96', callback: v => v.toLocaleString() } }
+      }
+    }
+  });
+
+  // Donut — expense breakdown
+  const expItems = {};
+  filteredRecords.filter(r => r['ประเภท'] === 'รายจ่าย').forEach(r => {
+    const item = r['สินค้า/รายการ'] || r['item'] || 'อื่นๆ';
+    expItems[item] = (expItems[item] || 0) + parseFloat(r['ยอดเงิน'] || 0);
+  });
+
+  const palette = ['#D85A30','#E0844A','#E8AA6A','#BA7517','#EF9F27','#A32D2D'];
+  const expLabels = Object.keys(expItems);
+  const expVals = Object.values(expItems);
+
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: expLabels.length ? expLabels : ['ไม่มีรายจ่าย'],
+      datasets: [{
+        data: expVals.length ? expVals : [1],
+        backgroundColor: palette,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function filterTable() {
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const rows = filteredRecords.filter(r => {
+    if (!search) return true;
+    return Object.values(r).some(v => String(v).toLowerCase().includes(search));
+  });
+
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const start = (currentPage - 1) * PER_PAGE;
+  const pageRows = rows.slice(start, start + PER_PAGE);
+
+  if (pageRows.length === 0) {
+    document.getElementById('tableBody').innerHTML = '<div class="empty">ไม่มีข้อมูลในช่วงเวลานี้</div>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  const tbody = pageRows.map(r => {
+    const type = r['ประเภท'] || '-';
+    const isIncome = type === 'รายรับ';
+    const amt = parseFloat(r['ยอดเงิน'] || 0);
+    const item = r['สินค้า/รายการ'] || r['item'] || '-';
+    const qty = r['จำนวน'] || '-';
+    const time = r['เวลา'] || '-';
+
+    return `<tr>
+      <td>${time}</td>
+      <td><span class="badge ${isIncome ? 'badge-income' : 'badge-expense'}">${type}</span></td>
+      <td>${item}</td>
+      <td style="text-align:center">${qty}</td>
+      <td style="text-align:right" class="${isIncome ? 'amount-income' : 'amount-expense'}">
+        ${isIncome ? '+' : '-'}${amt.toLocaleString('th-TH')} ฿
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tableBody').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>เวลา</th>
+          <th>ประเภท</th>
+          <th>รายการ</th>
+          <th style="text-align:center">จำนวน</th>
+          <th style="text-align:right">ยอดเงิน</th>
+        </tr>
+      </thead>
+      <tbody>${tbody}</tbody>
+    </table>
+  `;
+
+  // Pagination
+  let pag = '';
+  if (totalPages > 1) {
+    pag += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      pag += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    pag += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+  }
+  pag += `<span style="margin-left:8px; font-size:12px; color:var(--text3)">${total} รายการ</span>`;
+  document.getElementById('pagination').innerHTML = pag;
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+}
+
+loadData();
+setInterval(loadData, 60000); // auto-refresh ทุก 1 นาที
+</script>
+</body>
+</html>
