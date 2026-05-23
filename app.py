@@ -1,12 +1,11 @@
 print("NEW VERSION")
-from flask import Flask, request ,jsonify,render_template
- 
+from flask import Flask, request, jsonify, render_template
+
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import (
     MessageEvent,
     TextMessage,
     TextSendMessage,
-    
 )
 
 from oauth2client.service_account import ServiceAccountCredentials
@@ -24,6 +23,7 @@ app = Flask(__name__)
 
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+LIFF_ID = os.getenv("LIFF_ID", "")
 
 line_bot_api = None
 handler = None
@@ -76,6 +76,63 @@ def home():
     return "LINE BOT RUNNING"
 
 # =========================
+# DASHBOARD
+# =========================
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
+
+# =========================
+# LIFF FORM
+# =========================
+
+@app.route("/liff")
+def liff_page():
+    return render_template("liff.html", liff_id=LIFF_ID)
+
+# =========================
+# API - ดึงข้อมูลจาก Google Sheets
+# =========================
+
+@app.route("/api/data")
+def api_data():
+    if not sheet:
+        return jsonify({"error": "ยังไม่เชื่อม Google Sheets"}), 500
+    try:
+        records = sheet.get_all_records()
+        return jsonify({"records": records})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# =========================
+# API - บันทึกรายการจาก LIFF
+# =========================
+
+@app.route("/api/add", methods=["POST"])
+def api_add():
+    if not sheet:
+        return jsonify({"success": False, "error": "ยังไม่เชื่อม Google Sheets"}), 500
+    try:
+        data = request.get_json()
+        row_type = data.get("type")
+        item = data.get("item")
+        qty = data.get("qty", "-")
+        amount = data.get("amount")
+
+        sheet.append_row([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            row_type,
+            item,
+            qty,
+            amount
+        ])
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# =========================
 # CALLBACK
 # =========================
 
@@ -88,19 +145,7 @@ def callback():
     body = request.get_data(as_text=True)
     handler.handle(body, signature)
     return 'OK'
-@app.route("/dashboard")
-def dashboard():
-    return render_template("dashboard.html")
 
-@app.route("/api/data")
-def api_data():
-    if not sheet:
-        return jsonify({"error": "ยังไม่เชื่อม Google Sheets"}), 500
-    try:
-        records = sheet.get_all_records()
-        return jsonify({"records": records})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 # =========================
 # EVENTS
 # =========================
@@ -113,10 +158,8 @@ if handler:
         text = event.message.text.strip()
         user_id = event.source.user_id
 
-        # คำสั่งที่บอทตอบได้
-        VALID_COMMANDS = ["เพิ่มรายรับ", "เพิ่มรายจ่าย", "สรุปวันนี้"]
+        VALID_COMMANDS = ["เพิ่มรายรับ", "เพิ่มรายจ่าย", "สรุปวันนี้", "บันทึกรายการ"]
 
-        # ถ้าไม่ได้อยู่ใน flow และไม่ใช่คำสั่ง → เงียบ ไม่ตอบ
         if user_id not in user_states and text not in VALID_COMMANDS:
             return
 
@@ -125,16 +168,20 @@ if handler:
         try:
 
             # =====================
+            # บันทึกรายการ → เปิด LIFF
+            # =====================
+
+            if text == "บันทึกรายการ":
+                liff_url = f"https://liff.line.me/{LIFF_ID}"
+                reply = f"กดลิงก์นี้เพื่อบันทึกรายการ:\n{liff_url}"
+
+            # =====================
             # เริ่มเพิ่มรายรับ
             # =====================
 
-            if text == "เพิ่มรายรับ":
+            elif text == "เพิ่มรายรับ":
                 user_states[user_id] = {"step": "income_item"}
                 reply = "กรอกชื่อสินค้า"
-
-            # =====================
-            # กรอกชื่อสินค้า (รายรับ)
-            # =====================
 
             elif (
                 user_id in user_states and
@@ -144,10 +191,6 @@ if handler:
                 user_states[user_id]["step"] = "income_qty"
                 reply = "กรอกจำนวน"
 
-            # =====================
-            # กรอกจำนวน (รายรับ)
-            # =====================
-
             elif (
                 user_id in user_states and
                 user_states[user_id]["step"] == "income_qty"
@@ -155,10 +198,6 @@ if handler:
                 user_states[user_id]["qty"] = text
                 user_states[user_id]["step"] = "income_amount"
                 reply = "กรอกราคา"
-
-            # =====================
-            # กรอกราคา (รายรับ)
-            # =====================
 
             elif (
                 user_id in user_states and
@@ -194,10 +233,6 @@ if handler:
                 user_states[user_id] = {"step": "expense_item"}
                 reply = "กรอกชื่อรายการ"
 
-            # =====================
-            # กรอกชื่อรายการ (รายจ่าย)
-            # =====================
-
             elif (
                 user_id in user_states and
                 user_states[user_id]["step"] == "expense_item"
@@ -205,10 +240,6 @@ if handler:
                 user_states[user_id]["item"] = text
                 user_states[user_id]["step"] = "expense_amount"
                 reply = "กรอกจำนวนเงิน"
-
-            # =====================
-            # กรอกเงิน (รายจ่าย)
-            # =====================
 
             elif (
                 user_id in user_states and
