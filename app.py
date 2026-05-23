@@ -1,6 +1,6 @@
 print("NEW VERSION")
-from flask import Flask, request
-
+from flask import Flask, request ,jsonify,render_template
+ 
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import (
     MessageEvent,
@@ -88,7 +88,19 @@ def callback():
     body = request.get_data(as_text=True)
     handler.handle(body, signature)
     return 'OK'
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
 
+@app.route("/api/data")
+def api_data():
+    if not sheet:
+        return jsonify({"error": "ยังไม่เชื่อม Google Sheets"}), 500
+    try:
+        records = sheet.get_all_records()
+        return jsonify({"records": records})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # =========================
 # EVENTS
 # =========================
