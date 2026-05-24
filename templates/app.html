@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application & Dashboard</title>
-    <!-- เรียกใช้ Chart.js สำหรับวาดกราฟใน Dashboard -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>บัญชีรายรับ-รายจ่าย</title>
     <style>
         :root {
-            --primary-color: #4f46e5;
-            --success-color: #10b981;
+            --primary-color: #10b981;
+            --danger-color: #ef4444;
             --background-color: #f3f4f6;
             --card-background: #ffffff;
             --text-color: #1f2937;
@@ -21,14 +19,19 @@
             color: var(--text-color);
             margin: 0;
             padding: 0;
+            padding-bottom: 60px;
+        }
+
+        /* หน้า Login Gate */
+        .login-container {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            background-color: var(--background-color);
         }
 
-        /* 1. สไตล์สำหรับหน้า Login Gate (ด่านแรก และ ด่าน Dashboard) */
-        .login-container {
+        .login-box {
             background: var(--card-background);
             padding: 2.5rem;
             border-radius: 16px;
@@ -38,201 +41,155 @@
             text-align: center;
         }
 
-        .login-container h2 { margin-bottom: 1.5rem; color: var(--text-color); }
+        .login-box h2 { margin-bottom: 1.5rem; }
         .input-group { margin-bottom: 1.25rem; text-align: left; }
         .input-group label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; }
-        .input-group input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        .input-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .input-group input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; }
         
-        .btn { width: 100%; padding: 0.75rem; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-        .btn:hover { background-color: #4338ca; }
-        .btn-success { background-color: var(--success-color); }
-        .btn-success:hover { background-color: #059669; }
-        
+        .btn { width: 100%; padding: 0.75rem; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
         .error-msg { color: #dc2626; font-size: 0.875rem; margin-top: 0.5rem; display: none; }
 
-        /* 2. สไตล์สำหรับตัวแอปหลัก */
-        .app-container {
-            display: none;
-            width: 90%;
-            max-width: 1000px;
-            background: var(--card-background);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-            margin: 20px 0;
-        }
-
-        .app-header {
+        /* หน้าจอแอปพลิเคชันหลัก */
+        .app-container { display: none; }
+        
+        .top-banner {
             background-color: var(--primary-color);
             color: white;
-            padding: 1.25rem 2rem;
+            padding: 2rem;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+        }
+
+        .banner-header { display: flex; justify-content: space-between; align-items: center; }
+        .main-balance { font-size: 2.5rem; font-weight: bold; margin: 0.5rem 0; }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: -1.5rem 1rem 1.5rem 1rem;
+        }
+
+        .card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .card-title { font-size: 0.85rem; color: #6b7280; }
+        .card-value { font-size: 1.25rem; font-weight: bold; margin-top: 0.25rem; }
+
+        .action-container { padding: 0 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .action-btn { padding: 1rem; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; text-align: center; }
+        .btn-inc { background-color: var(--primary-color); }
+        .btn-exp { background-color: var(--danger-color); }
+
+        .list-section { padding: 1.5rem 1rem; }
+        .section-title { font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem; }
+        
+        .loading-box { text-align: center; color: #9ca3af; padding: 2rem 0; }
+        .history-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-
-        .app-header h1 { margin: 0; font-size: 1.25rem; }
-        .app-content { padding: 2rem; }
-
-        /* ปุ่มกดสลับไปหน้า Dashboard */
-        .nav-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
+        
+        /* แท็บเมนูด้านล่าง */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 0.5rem 0;
+            border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         }
-        .nav-btn:hover { background: rgba(255, 255, 255, 0.3); }
-
-        /* 3. สไตล์ส่วน Dashboard */
-        .dashboard-section {
-            display: none; /* ซ่อนไว้ก่อนจนกว่าจะใส่รหัสผ่านผ่านด่านสอง */
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 2px dashed #e5e7eb;
-        }
-
-        .grid-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: #f9fafb;
-            padding: 1.5rem;
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            text-align: center;
-        }
-
-        .stat-card h4 { margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.9rem; }
-        .stat-card p { margin: 0; font-size: 1.5rem; font-weight: bold; color: var(--text-color); }
-
-        .chart-container {
-            position: relative;
-            margin: auto;
-            height: 300px;
-            width: 100%;
-            max-width: 600px;
-        }
+        .nav-item { background: none; border: none; color: #9ca3af; font-size: 0.75rem; cursor: pointer; text-align: center; }
+        .nav-item.active { color: var(--primary-color); font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <!-- ด่านที่ 1: หน้าตรวจสอบรหัสผ่านหลักเพื่อเข้าแอป (Login Gate) -->
     <div id="loginGate" class="login-container">
-        <h2>กรุณาเข้าสู่ระบบ</h2>
-        <div class="input-group">
-            <label for="password">รหัสผ่านสำหรับเข้าใช้งาน</label>
-            <input type="password" id="password" placeholder="ใส่รหัสผ่านที่นี่...">
-            <div id="errorMsg" class="error-msg">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>
+        <div class="login-box">
+            <h2>กรุณาเข้าสู่ระบบ</h2>
+            <div class="input-group">
+                <label for="password">รหัสผ่านสำหรับเข้าใช้งาน</label>
+                <input type="password" id="password" placeholder="ใส่รหัสผ่านที่นี่...">
+                <div id="errorMsg" class="error-msg">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>
+            </div>
+            <button class="btn" onclick="checkPassword()">ตกลง</button>
         </div>
-        <button class="btn" onclick="checkPassword()">ตกลง</button>
     </div>
 
-    <!-- ด่านที่ 2: หน้าต่างป็อปอัพตรวจรหัสผ่านอีกรอบก่อนเข้า Dashboard (ซ่อนอยู่โดยเริ่มต้น) -->
-    <div id="dashboardAuthGate" class="login-container" style="display: none;">
-        <h2>🔐 ยืนยันรหัสผ่านอีกครั้ง</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 1rem;">พื้นที่ข้อมูลสำคัญ กรุณากรอกรหัสผ่านเพื่อเข้าสู่ Dashboard</p>
-        <div class="input-group">
-            <label for="dbPassword">รหัสผ่าน Dashboard</label>
-            <input type="password" id="dbPassword" placeholder="ระบุรหัสผ่านอีกครั้ง...">
-            <div id="dbErrorMsg" class="error-msg">รหัสผ่านไม่ถูกต้อง ไม่สามารถเข้าถึง Dashboard ได้</div>
-        </div>
-        <button class="btn btn-success" onclick="checkDashboardPassword()">ยืนยันตัวตน</button>
-        <button class="btn" style="background:#9ca3af; margin-top: 0.5rem;" onclick="cancelDashboard()">ยกเลิก</button>
-    </div>
-
-    <!-- ส่วนของแอปพลิเคชันหลัก (จะแสดงเมื่อผ่านด่านแรก) -->
     <div id="mainApp" class="app-container">
-        <div class="app-header">
-            <h1>ระบบจัดการแอปพลิเคชัน</h1>
-            <!-- ปุ่มกดเพื่อขอเข้า Dashboard -->
-            <button id="goToDbBtn" class="nav-btn" onclick="requestDashboardAccess()">📊 ดู Dashboard</button>
+        <div id="page-home">
+            <div class="top-banner">
+                <div class="banner-header">
+                    <span style="font-weight: bold;">💰 บัญชีรายรับ-รายจ่าย</span>
+                    <span style="font-size: 0.85rem;" id="currentDateLabel">อาทิตย์ 24 พ.ค.</span>
+                </div>
+                <div style="font-size: 0.85rem; margin-top: 1rem; opacity: 0.9;">กำไรสุทธิวันนี้</div>
+                <div class="main-balance" id="todayProfit">฿0</div>
+                <div style="font-size: 0.75rem; opacity: 0.8;" id="todaySub">รายรับ ฿0 · รายจ่าย ฿0</div>
+            </div>
+
+            <div class="summary-cards">
+                <div class="card">
+                    <div class="card-title">💰 รายรับ</div>
+                    <div class="card-value" style="color: var(--primary-color);" id="totalIncomeCard">฿0</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">💸 รายจ่าย</div>
+                    <div class="card-value" style="color: var(--danger-color);" id="totalExpenseCard">฿0</div>
+                </div>
+            </div>
+
+            <div class="action-container">
+                <button class="action-btn btn-inc" onclick="alert('ฟังก์ชันเพิ่มรายรับ')">+ เพิ่มรายรับ</button>
+                <button class="action-btn btn-exp" onclick="alert('ฟังก์ชันเพิ่มรายจ่าย')">+ เพิ่มรายจ่าย</button>
+            </div>
+
+            <div class="list-section">
+                <div class="section-title">รายการล่าสุด</div>
+                <div id="loadingStatus" class="loading-box">🔄 กำลังโหลด...</div>
+                <div id="latestRecordsList"></div>
+            </div>
         </div>
-        
-        <div class="app-content">
-            <!-- หน้าจัดการงานทั่วไปเดิมของคุณ -->
-            <div id="generalAppContent">
-                <h3>ยินดีต้อนรับเข้าสู่ระบบ</h3>
-                <p>นี่คือพื้นที่จัดการข้อมูลทั่วไปของคุณตามปกติ (เวลาไทยแสดงผลถูกต้องแล้ว)</p>
-                <!-- จุดแสดงรายการเวลาที่แก้ไข Timezone ไทยแล้วจากรอบก่อน -->
-                <p>🕒 ตัวอย่างเวลาไทยล่าสุด: <strong id="sampleTime">กำลังโหลด...</strong></p>
-            </div>
 
-            <!-- หน้า Dashboard (จะปลดล็อกเมื่อใส่รหัสผ่านด่านสองผ่านแล้วเท่านั้น) -->
-            <div id="dashboardSection" class="dashboard-section">
-                <h3>📊 สรุปผลวิเคราะห์ข้อมูล (Dashboard)</h3>
-                
-                <!-- การ์ดสรุปตัวเลขแบบย่อย -->
-                <div class="grid-stats">
-                    <div class="stat-card">
-                        <h4>ยอดรวมรายรับ</h4>
-                        <p style="color: #10b981;">฿24,500</p>
-                    </div>
-                    <div class="stat-card">
-                        <h4>ยอดรวมรายจ่าย</h4>
-                        <p style="color: #ef4444;">฿11,200</p>
-                    </div>
-                    <div class="stat-card">
-                        <h4>คงเหลือสุทธิ</h4>
-                        <p style="color: #4f46e5;">฿13,300</p>
-                    </div>
-                </div>
-
-                <!-- กราฟแสดงสถิติ -->
-                <div class="chart-container">
-                    <canvas id="dashboardChart"></canvas>
-                </div>
-            </div>
-
+        <div class="bottom-nav">
+            <button class="nav-item active">🏠<br>หน้าหลัก</button>
+            <button class="nav-item" onclick="alert('เปิดฟังก์ชันบันทึก')">📝<br>บันทึก</button>
+            <button class="nav-item" onclick="alert('เปิดหน้าประวัติ')">📈<br>ประวัติ</button>
         </div>
     </div>
 
     <script>
-        // ย้ายการเช็ครหัสผ่านไปไว้ที่หลังบ้าน (app.py) ทั้งหมดแล้ว 
-        // ดังนั้นจึงลบตัวแปร CONFIG_PASSWORD และ DASHBOARD_PASSWORD ทิ้ง เพื่อความปลอดภัยสูงสุดครับ
+        // 🛠️ แก้ไขรหัสผ่านของคุณที่บรรทัดนี้ได้เลยครับ
+        const CONFIG_PASSWORD = "123456"; 
 
         window.onload = function() {
-            // บังคับแปลงเวลาเป็นสไตล์ไทย GMT+7 ตามที่แก้ไขรอบก่อนหน้า
-            const mockUtcTimeFromServer = "2026-05-24 06:26:00"; 
-            const utcDate = new Date(mockUtcTimeFromServer.replace(' ', 'T') + 'Z');
-            document.getElementById("sampleTime").innerText = utcDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + " น.";
-
             if (sessionStorage.getItem("isLoggedIn") === "true") {
                 showApp();
             }
         };
 
-        // --- ระบบล็อกอินด่านที่ 1 (เข้าแอปปกติ) ---
-        async function checkPassword() {
+        function checkPassword() {
             const passwordInput = document.getElementById("password").value;
             const errorMsg = document.getElementById("errorMsg");
 
-            try {
-                // ยิง API ไปเช็คที่หลังบ้านฝั่ง Python
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: passwordInput })
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    sessionStorage.setItem("isLoggedIn", "true");
-                    errorMsg.style.display = "none";
-                    showApp();
-                } else {
-                    errorMsg.style.display = "block";
-                }
-            } catch (e) {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
-            } finally {
+            if (passwordInput === CONFIG_PASSWORD) {
+                sessionStorage.setItem("isLoggedIn", "true");
+                errorMsg.style.display = "none";
+                showApp();
+            } else {
+                errorMsg.style.display = "block";
                 document.getElementById("password").value = "";
             }
         }
@@ -240,93 +197,72 @@
         function showApp() {
             document.getElementById("loginGate").style.display = "none";
             document.getElementById("mainApp").style.display = "block";
+            loadData();
         }
 
-        // --- ระบบล็อกอินด่านที่ 2 (เข้า Dashboard แบบ Double-Lock) ---
-        function requestDashboardAccess() {
-            // ซ่อนหน้าแอปหลักชั่วคราว แล้วเปิดด่านล็อกอินที่สองขึ้นมาแทน
-            document.getElementById("mainApp").style.display = "none";
-            document.getElementById("dashboardAuthGate").style.display = "block";
-            document.getElementById("dbPassword").focus();
-        }
+        function loadData() {
+            const listContainer = document.getElementById("latestRecordsList");
+            const loadingBox = document.getElementById("loadingStatus");
 
-        async function checkDashboardPassword() {
-            const dbPasswordInput = document.getElementById("dbPassword").value;
-            const dbErrorMsg = document.getElementById("dbErrorMsg");
+            fetch('/api/data')
+                .then(res => res.json())
+                .then(data => {
+                    loadingBox.style.display = "none";
+                    if (data.records && data.records.length > 0) {
+                        listContainer.innerHTML = "";
+                        
+                        let incomeSum = 0;
+                        let expenseSum = 0;
+                        
+                        // ค้นหาวันปัจจุบันในรูปแบบ YYYY-MM-DD
+                        const todayStr = new Date().toISOString().split('T')[0];
 
-            try {
-                // ยิง API ไปเช็คที่หลังบ้านฝั่ง Python เช่นกัน (ใช้รหัสร่วมกันผ่าน Environment Variable บน Render)
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: dbPasswordInput })
+                        data.records.forEach(r => {
+                            // การจัดการแปลงเวลาที่ปลอดภัย ไม่ใช้การต่อท้าย 'Z' เพื่อให้ Filter วันที่ตรงตามปกติ
+                            let recordDateStr = "";
+                            let displayTime = "ไม่ระบุเวลา";
+
+                            if (r['เวลา']) {
+                                recordDateStr = r['เวลา'].split(' ')[0]; // แยกเอาเฉพาะปี-เดือน-วัน
+                                const tObj = new Date(r['เวลา'].replace(' ', 'T'));
+                                if (!isNaN(tObj)) {
+                                    displayTime = tObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + " น.";
+                                }
+                            }
+
+                            // คำนวณผลรวมสะสม
+                            const amount = parseFloat(r['ยอดเงิน']) || 0;
+                            if (r['ประเภท'] === 'รายรับ') incomeSum += amount;
+                            if (r['ประเภท'] === 'รายจ่าย') expenseSum += amount;
+
+                            // แสดงผลรายการในหน้าแรก
+                            const itemHtml = `
+                                <div class="history-item">
+                                    <div>
+                                        <div style="font-weight:500;">${r['รายการ'] || 'ไม่มีชื่อรายการ'}</div>
+                                        <div style="font-size:0.75rem; color:#9ca3af;">${displayTime}</div>
+                                    </div>
+                                    <div style="font-weight:bold; color:${r['ประเภท'] === 'รายรับ' ? 'var(--primary-color)' : 'var(--danger-color)'}">
+                                        ${r['ประเภท'] === 'รายรับ' ? '+' : '-'}฿${amount.toLocaleString()}
+                                    </div>
+                                </div>`;
+                            listContainer.insertAdjacentHTML('beforeend', itemHtml);
+                        });
+
+                        // อัปเดตตัวเลขแสดงบนแบนเนอร์สรุปผล
+                        document.getElementById("totalIncomeCard").innerText = `฿${incomeSum.toLocaleString()}`;
+                        document.getElementById("totalExpenseCard").innerText = `฿${expenseSum.toLocaleString()}`;
+                        document.getElementById("todayProfit").innerText = `฿${(incomeSum - expenseSum).toLocaleString()}`;
+                        document.getElementById("todaySub").innerText = `รายรับ ฿${incomeSum.toLocaleString()} · รายจ่าย ฿${expenseSum.toLocaleString()}`;
+
+                    } else {
+                        listContainer.innerHTML = "<div class='loading-box'>ยังไม่มีข้อมูลบันทึกในวันนี้</div>";
+                    }
+                })
+                .catch(err => {
+                    loadingBox.innerText = "❌ โหลดข้อมูลไม่สำเร็จ";
+                    console.error(err);
                 });
-                const data = await response.json();
-
-                if (data.success) {
-                    dbErrorMsg.style.display = "none";
-                    
-                    // ผ่านด่าน! ส่งกลับหน้าแอปหลัก และเปิดส่วน Dashboard ให้เห็น
-                    document.getElementById("dashboardAuthGate").style.display = "none";
-                    document.getElementById("mainApp").style.display = "block";
-                    document.getElementById("dashboardSection").style.display = "block";
-                    
-                    // เปลี่ยนปุ่มกดด้านบนให้เป็นปุ่ม "ปิด Dashboard" แทน
-                    const dbBtn = document.getElementById("goToDbBtn");
-                    dbBtn.innerText = "📁 ปิด Dashboard";
-                    dbBtn.setAttribute("onclick", "closeDashboard()");
-
-                    // เรียกฟังก์ชันวาดกราฟ
-                    initDashboardChart();
-                } else {
-                    dbErrorMsg.style.display = "block";
-                }
-            } catch (e) {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
-            } finally {
-                document.getElementById("dbPassword").value = "";
-            }
-        }
-
-        function cancelDashboard() {
-            // ยกเลิกการเข้า ให้กลับไปหน้าแอปปกติ
-            document.getElementById("dashboardAuthGate").style.display = "none";
-            document.getElementById("mainApp").style.display = "block";
-        }
-
-        function closeDashboard() {
-            // สั่งซ่อนส่วน Dashboard 
-            document.getElementById("dashboardSection").style.display = "none";
-            
-            // เปลี่ยนปุ่มด้านบนกลับเป็นปกติ
-            const dbBtn = document.getElementById("goToDbBtn");
-            dbBtn.innerText = "📊 ดู Dashboard";
-            dbBtn.setAttribute("onclick", "requestDashboardAccess()");
-        }
-
-        // --- ฟังก์ชันสร้างกราฟใน Dashboard ---
-        let myChart = null;
-        function initDashboardChart() {
-            const ctx = document.getElementById('dashboardChart').getContext('2d');
-            if (myChart) myChart.destroy(); // เคลียร์กราฟเก่าทิ้งก่อนวาดใหม่
-
-            myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.'],
-                    datasets: [{
-                        label: 'รายรับสุทธิ (บาท)',
-                        data: [12000, 19000, 3000, 5000, 13300],
-                        backgroundColor: '#4f46e5',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
         }
     </script>
 </body>

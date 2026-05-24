@@ -1,4 +1,4 @@
-print("NEW VERSION")
+print("OLD VERSION - NO DASHBOARD")
 from flask import Flask, request, jsonify, render_template, send_from_directory
 
 from linebot import LineBotApi, WebhookHandler
@@ -65,10 +65,6 @@ def home():
 def pwa_app():
     return render_template("app.html")
 
-@app.route("/dashboard")
-def dashboard():
-    return render_template("dashboard.html")
-
 @app.route("/liff")
 def liff_page():
     return render_template("liff.html", liff_id=LIFF_ID)
@@ -94,19 +90,7 @@ def api_data():
         return jsonify({"records": records})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-# เพิ่ม Route สำหรับตรวจสอบรหัสผ่าน Dashboard
-@app.route("/api/login", methods=["POST"])
-def api_login():
-    data = request.get_json() or {}
-    password = data.get("password")
-    
-    # ดึงรหัสผ่านที่ตั้งไว้จาก Render Environment
-    correct_password = os.environ.get("DASHBOARD_PASSWORD", "123456") # ถ้าไม่ได้ตั้งใน Render จะใช้ 123456 เป็นค่าเริ่มต้น
-    
-    if password == correct_password:
-        return jsonify({"success": True, "message": "เข้าสู่ระบบสำเร็จ"})
-    else:
-        return jsonify({"success": False, "message": "รหัสผ่านไม่ถูกต้อง"}), 401
+
 @app.route("/api/add", methods=["POST"])
 def api_add():
     if not sheet:
@@ -125,7 +109,7 @@ def api_add():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # =========================
-# CALLBACK
+# CALLBACK & EVENTS (LINE)
 # =========================
 
 @app.route("/callback", methods=['POST'])
@@ -136,10 +120,6 @@ def callback():
     body = request.get_data(as_text=True)
     handler.handle(body, signature)
     return 'OK'
-
-# =========================
-# EVENTS
-# =========================
 
 if handler:
     @handler.add(MessageEvent, message=TextMessage)
@@ -217,10 +197,6 @@ if handler:
 
         except Exception as e:
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"❌ ERROR:\n{str(e)}"))
-
-# =========================
-# RUN
-# =========================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
