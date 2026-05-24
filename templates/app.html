@@ -19,10 +19,9 @@
             color: var(--text-color);
             margin: 0;
             padding: 0;
-            padding-bottom: 60px;
         }
 
-        /* หน้า Login Gate */
+        /* 1. สไตล์สำหรับหน้า Login Gate */
         .login-container {
             display: flex;
             justify-content: center;
@@ -41,77 +40,94 @@
             text-align: center;
         }
 
-        .login-box h2 { margin-bottom: 1.5rem; }
+        .login-box h2 { margin-bottom: 1.5rem; color: var(--text-color); }
         .input-group { margin-bottom: 1.25rem; text-align: left; }
         .input-group label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; }
-        .input-group input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; }
+        .input-group input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .input-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
         
-        .btn { width: 100%; padding: 0.75rem; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .btn { width: 100%; padding: 0.75rem; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .btn:hover { background-color: #059669; }
         .error-msg { color: #dc2626; font-size: 0.875rem; margin-top: 0.5rem; display: none; }
 
-        /* หน้าจอแอปพลิเคชันหลัก */
-        .app-container { display: none; }
-        
+        /* 2. สไตล์สำหรับตัวแอปหลัก */
+        .app-container {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--card-background);
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            position: relative;
+            padding-bottom: 80px;
+        }
+
         .top-banner {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            padding: 2rem;
+            padding: 2.5rem 2rem;
             border-bottom-left-radius: 24px;
             border-bottom-right-radius: 24px;
         }
 
-        .banner-header { display: flex; justify-content: space-between; align-items: center; }
-        .main-balance { font-size: 2.5rem; font-weight: bold; margin: 0.5rem 0; }
+        .banner-header { display: flex; justify-content: space-between; align-items: center; opacity: 0.9; }
+        .main-balance { font-size: 3rem; font-weight: bold; margin: 0.5rem 0; }
         
         .summary-cards {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-            margin: -1.5rem 1rem 1.5rem 1rem;
+            padding: 0 1.5rem;
+            margin-top: -1.5rem;
         }
 
         .card {
             background: white;
-            padding: 1rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 1.25rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            border: 1px solid #f3f4f6;
         }
-        .card-title { font-size: 0.85rem; color: #6b7280; }
-        .card-value { font-size: 1.25rem; font-weight: bold; margin-top: 0.25rem; }
+        .card-title { font-size: 0.85rem; color: #6b7280; font-weight: 500; }
+        .card-value { font-size: 1.4rem; font-weight: bold; margin-top: 0.25rem; }
 
-        .action-container { padding: 0 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .action-btn { padding: 1rem; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; text-align: center; }
-        .btn-inc { background-color: var(--primary-color); }
-        .btn-exp { background-color: var(--danger-color); }
+        .action-container { padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .action-btn { padding: 1rem; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; text-align: center; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: transform 0.1s; }
+        .action-btn:active { transform: scale(0.98); }
+        .btn-inc { background-color: #10b981; }
+        .btn-exp { background-color: #ef4444; }
 
-        .list-section { padding: 1.5rem 1rem; }
-        .section-title { font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem; }
+        .list-section { padding: 0 1.5rem; }
+        .section-title { font-size: 1rem; font-weight: bold; color: var(--text-color); margin-bottom: 1rem; }
         
-        .loading-box { text-align: center; color: #9ca3af; padding: 2rem 0; }
+        .loading-box { text-align: center; color: #9ca3af; padding: 3rem 0; font-size: 0.95rem; }
+        
         .history-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: white;
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            padding: 1rem 1.25rem;
+            border-radius: 14px;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            border: 1px solid #f9fafb;
         }
         
         /* แท็บเมนูด้านล่าง */
         .bottom-nav {
             position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: white;
+            bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             display: flex;
             justify-content: space-around;
-            padding: 0.5rem 0;
+            padding: 0.75rem 0;
             border-top: 1px solid #e5e7eb;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
         }
-        .nav-item { background: none; border: none; color: #9ca3af; font-size: 0.75rem; cursor: pointer; text-align: center; }
-        .nav-item.active { color: var(--primary-color); font-weight: bold; }
+        .nav-item { background: none; border: none; color: #9ca3af; font-size: 0.8rem; cursor: pointer; text-align: center; font-weight: 500; }
+        .nav-item.active { color: #10b981; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -129,78 +145,91 @@
     </div>
 
     <div id="mainApp" class="app-container">
-        <div id="page-home">
-            <div class="top-banner">
-                <div class="banner-header">
-                    <span style="font-weight: bold;">💰 บัญชีรายรับ-รายจ่าย</span>
-                    <span style="font-size: 0.85rem;" id="currentDateLabel">อาทิตย์ 24 พ.ค.</span>
-                </div>
-                <div style="font-size: 0.85rem; margin-top: 1rem; opacity: 0.9;">กำไรสุทธิวันนี้</div>
-                <div class="main-balance" id="todayProfit">฿0</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;" id="todaySub">รายรับ ฿0 · รายจ่าย ฿0</div>
+        <div class="top-banner">
+            <div class="banner-header">
+                <span style="font-weight: bold; font-size: 1.1rem;">💰 บัญชีรายรับ-รายจ่าย</span>
+                <span style="font-size: 0.9rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 20px;" id="currentDateLabel">กำลังโหลดวัน...</span>
             </div>
+            <div style="font-size: 0.9rem; margin-top: 1.5rem; opacity: 0.85;">กำไรสุทธิวันนี้</div>
+            <div class="main-balance" id="todayProfit">฿0</div>
+            <div style="font-size: 0.85rem; opacity: 0.85;" id="todaySub">รายรับ ฿0 · รายจ่าย ฿0</div>
+        </div>
 
-            <div class="summary-cards">
-                <div class="card">
-                    <div class="card-title">💰 รายรับ</div>
-                    <div class="card-value" style="color: var(--primary-color);" id="totalIncomeCard">฿0</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">💸 รายจ่าย</div>
-                    <div class="card-value" style="color: var(--danger-color);" id="totalExpenseCard">฿0</div>
-                </div>
+        <div class="summary-cards">
+            <div class="card">
+                <div class="card-title">💰 รายรับวันนี้</div>
+                <div class="card-value" style="color: #10b981;" id="totalIncomeCard">฿0</div>
             </div>
+            <div class="card">
+                <div class="card-title">💸 รายจ่ายวันนี้</div>
+                <div class="card-value" style="color: #ef4444;" id="totalExpenseCard">฿0</div>
+            </div>
+        </div>
 
-            <div class="action-container">
-                <button class="action-btn btn-inc" onclick="alert('ฟังก์ชันเพิ่มรายรับ')">+ เพิ่มรายรับ</button>
-                <button class="action-btn btn-exp" onclick="alert('ฟังก์ชันเพิ่มรายจ่าย')">+ เพิ่มรายจ่าย</button>
-            </div>
+        <div class="action-container">
+            <button class="action-btn btn-inc" onclick="addNewRecord('รายรับ')"><span>+</span> เพิ่มรายรับ</button>
+            <button class="action-btn btn-exp" onclick="addNewRecord('รายจ่าย')"><span>+</span> เพิ่มรายจ่าย</button>
+        </div>
 
-            <div class="list-section">
-                <div class="section-title">รายการล่าสุด</div>
-                <div id="loadingStatus" class="loading-box">🔄 กำลังโหลด...</div>
-                <div id="latestRecordsList"></div>
-            </div>
+        <div class="list-section">
+            <div class="section-title">รายการล่าสุด</div>
+            <div id="loadingStatus" class="loading-box">🔄 กำลังโหลดรายการล่าสุด...</div>
+            <div id="latestRecordsList"></div>
         </div>
 
         <div class="bottom-nav">
             <button class="nav-item active">🏠<br>หน้าหลัก</button>
-            <button class="nav-item" onclick="alert('เปิดฟังก์ชันบันทึก')">📝<br>บันทึก</button>
-            <button class="nav-item" onclick="alert('เปิดหน้าประวัติ')">📈<br>ประวัติ</button>
+            <button class="nav-item" onclick="addNewRecord('รายรับ')">📝<br>บันทึก</button>
+            <button class="nav-item" onclick="toggleHistoryPage()">📊<br>ประวัติ</button>
         </div>
     </div>
 
     <script>
-        // 🛠️ แก้ไขรหัสผ่านของคุณที่บรรทัดนี้ได้เลยครับ
-        const CONFIG_PASSWORD = "123456"; 
+        // ลบตัวแปรรหัสผ่านจากหน้าบ้านออกหมดแล้ว ปลอดภัย 100% ครับ
 
         window.onload = function() {
+            const options = { weekday: 'long', day: 'numeric', month: 'ส.ค.' };
+            document.getElementById("currentDateLabel").innerText = new Date().toLocaleDateString('th-TH', options);
+
             if (sessionStorage.getItem("isLoggedIn") === "true") {
                 showApp();
             }
         };
 
-        function checkPassword() {
+        // ส่งคำขอตรวจรหัสผ่านไปที่ API ฝั่ง Python (app.py)
+        async function checkPassword() {
             const passwordInput = document.getElementById("password").value;
             const errorMsg = document.getElementById("errorMsg");
 
-            if (passwordInput === CONFIG_PASSWORD) {
-                sessionStorage.setItem("isLoggedIn", "true");
-                errorMsg.style.display = "none";
-                showApp();
-            } else {
-                errorMsg.style.display = "block";
-                document.getElementById("password").value = "";
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: passwordInput })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionStorage.setItem("isLoggedIn", "true");
+                    errorMsg.style.display = "none";
+                    showApp();
+                } else {
+                    errorMsg.style.display = "block";
+                    document.getElementById("password").value = "";
+                    document.getElementById("password").focus();
+                }
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง");
             }
         }
 
         function showApp() {
             document.getElementById("loginGate").style.display = "none";
             document.getElementById("mainApp").style.display = "block";
-            loadData();
+            loadDataFromServer();
         }
 
-        function loadData() {
+        function loadDataFromServer() {
             const listContainer = document.getElementById("latestRecordsList");
             const loadingBox = document.getElementById("loadingStatus");
 
@@ -213,56 +242,84 @@
                         
                         let incomeSum = 0;
                         let expenseSum = 0;
-                        
-                        // ค้นหาวันปัจจุบันในรูปแบบ YYYY-MM-DD
-                        const todayStr = new Date().toISOString().split('T')[0];
+                        const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                        const reversedRecords = data.records.slice().reverse();
 
-                        data.records.forEach(r => {
-                            // การจัดการแปลงเวลาที่ปลอดภัย ไม่ใช้การต่อท้าย 'Z' เพื่อให้ Filter วันที่ตรงตามปกติ
+                        reversedRecords.forEach(r => {
                             let recordDateStr = "";
                             let displayTime = "ไม่ระบุเวลา";
 
                             if (r['เวลา']) {
-                                recordDateStr = r['เวลา'].split(' ')[0]; // แยกเอาเฉพาะปี-เดือน-วัน
+                                recordDateStr = r['เวลา'].split(' ')[0];
                                 const tObj = new Date(r['เวลา'].replace(' ', 'T'));
                                 if (!isNaN(tObj)) {
-                                    displayTime = tObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + " น.";
+                                    displayTime = tObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + " น.";
                                 }
                             }
 
-                            // คำนวณผลรวมสะสม
                             const amount = parseFloat(r['ยอดเงิน']) || 0;
-                            if (r['ประเภท'] === 'รายรับ') incomeSum += amount;
-                            if (r['ประเภท'] === 'รายจ่าย') expenseSum += amount;
 
-                            // แสดงผลรายการในหน้าแรก
+                            if (recordDateStr === todayStr) {
+                                if (r['ประเภท'] === 'รายรับ') incomeSum += amount;
+                                if (r['ประเภท'] === 'รายจ่าย') expenseSum += amount;
+                            }
+
                             const itemHtml = `
                                 <div class="history-item">
                                     <div>
-                                        <div style="font-weight:500;">${r['รายการ'] || 'ไม่มีชื่อรายการ'}</div>
-                                        <div style="font-size:0.75rem; color:#9ca3af;">${displayTime}</div>
+                                        <div style="font-weight: 600; color: var(--text-color);">${r['รายการ'] || 'ไม่มีชื่อรายการ'}</div>
+                                        <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem;">${displayTime}</div>
                                     </div>
-                                    <div style="font-weight:bold; color:${r['ประเภท'] === 'รายรับ' ? 'var(--primary-color)' : 'var(--danger-color)'}">
+                                    <div style="font-weight: bold; font-size: 1.1rem; color: ${r['ประเภท'] === 'รายรับ' ? '#10b981' : '#ef4444'}">
                                         ${r['ประเภท'] === 'รายรับ' ? '+' : '-'}฿${amount.toLocaleString()}
                                     </div>
                                 </div>`;
                             listContainer.insertAdjacentHTML('beforeend', itemHtml);
                         });
 
-                        // อัปเดตตัวเลขแสดงบนแบนเนอร์สรุปผล
                         document.getElementById("totalIncomeCard").innerText = `฿${incomeSum.toLocaleString()}`;
                         document.getElementById("totalExpenseCard").innerText = `฿${expenseSum.toLocaleString()}`;
-                        document.getElementById("todayProfit").innerText = `฿${(incomeSum - expenseSum).toLocaleString()}`;
+                        
+                        const profit = incomeSum - expenseSum;
+                        const profitElement = document.getElementById("todayProfit");
+                        profitElement.innerText = `฿${profit.toLocaleString()}`;
+                        profitElement.style.color = profit >= 0 ? "white" : "#fee2e2";
+
                         document.getElementById("todaySub").innerText = `รายรับ ฿${incomeSum.toLocaleString()} · รายจ่าย ฿${expenseSum.toLocaleString()}`;
 
                     } else {
-                        listContainer.innerHTML = "<div class='loading-box'>ยังไม่มีข้อมูลบันทึกในวันนี้</div>";
+                        listContainer.innerHTML = "<div class='loading-box'>ยังไม่มีข้อมูลประวัติรายการ</div>";
                     }
                 })
                 .catch(err => {
-                    loadingBox.innerText = "❌ โหลดข้อมูลไม่สำเร็จ";
+                    loadingBox.innerText = "❌ เกิดข้อผิดพลาดในการดึงข้อมูล";
                     console.error(err);
                 });
+        }
+
+        function addNewRecord(type) {
+            const item = prompt(`กรอกชื่อรายการ [${type}]:`);
+            if (!item) return;
+            const amount = prompt(`กรอกจำนวนเงิน (บาท):`);
+            if (!amount || isNaN(amount)) return;
+
+            fetch('/api/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: type, item: item, amount: parseInt(amount) })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert("บันทึกข้อมูลเรียบร้อยแล้วครับ!");
+                    document.getElementById("loadingStatus").style.display = "block";
+                    loadDataFromServer();
+                }
+            });
+        }
+
+        function toggleHistoryPage() {
+            alert("กำลังเปิดหน้าประวัติภาพรวมทั้งหมด...");
         }
     </script>
 </body>

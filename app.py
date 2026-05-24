@@ -1,12 +1,9 @@
-print("OLD VERSION - NO DASHBOARD")
+print("OLD VERSION - NO DASHBOARD (FETCH PASSWORD FROM RENDER)")
 from flask import Flask, request, jsonify, render_template, send_from_directory
-
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
-
 from datetime import datetime
 import json
 import os
@@ -14,12 +11,13 @@ import os
 app = Flask(__name__)
 
 # =========================
-# LINE CONFIG
+# CONFIG & RENDER ENVIRONMENT
 # =========================
-
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 LIFF_ID = os.getenv("LIFF_ID", "")
+# ดึงรหัสผ่านจาก Render ถ้าไม่ได้ตั้งไว้ใน Render จะใช้รหัส "123456" เป็นค่าเริ่มต้น (Default)
+RENDER_APP_PASSWORD = os.getenv("APP_PASSWORD", "123456")
 
 line_bot_api = None
 handler = None
@@ -34,9 +32,7 @@ else:
 # =========================
 # GOOGLE SHEETS
 # =========================
-
 sheet = None
-
 try:
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     google_creds_raw = os.getenv("GOOGLE_CREDENTIALS")
@@ -54,9 +50,8 @@ except Exception as e:
 user_states = {}
 
 # =========================
-# ROUTES
+# ROUTES & API
 # =========================
-
 @app.route("/")
 def home():
     return "LINE BOT RUNNING"
@@ -65,21 +60,16 @@ def home():
 def pwa_app():
     return render_template("app.html")
 
-@app.route("/liff")
-def liff_page():
-    return render_template("liff.html", liff_id=LIFF_ID)
-
-@app.route("/manifest.json")
-def manifest():
-    return send_from_directory("static", "manifest.json")
-
-@app.route("/sw.js")
-def service_worker():
-    return send_from_directory("static", "sw.js", mimetype="application/javascript")
-
-# =========================
-# API
-# =========================
+# API สำหรับตรวจสอบรหัสผ่านที่ส่งมาจากหน้าแอป HTML
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json() or {}
+    user_password = data.get("password", "")
+    
+    if user_password == RENDER_APP_PASSWORD:
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False, "message": "รหัสผ่านไม่ถูกต้อง"})
 
 @app.route("/api/data")
 def api_data():
@@ -108,10 +98,21 @@ def api_add():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/liff")
+def liff_page():
+    return render_template("liff.html", liff_id=LIFF_ID)
+
+@app.route("/manifest.json")
+def manifest():
+    return send_from_directory("static", "manifest.json")
+
+@app.route("/sw.js")
+def service_worker():
+    return send_from_directory("static", "sw.js", mimetype="application/javascript")
+
 # =========================
 # CALLBACK & EVENTS (LINE)
 # =========================
-
 @app.route("/callback", methods=['POST'])
 def callback():
     if not handler:
