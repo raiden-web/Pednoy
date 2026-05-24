@@ -195,9 +195,8 @@
     </div>
 
     <script>
-        // กำหนดรหัสผ่าน (สามารถใช้รหัสเดียวกัน หรือตั้งแยกกันเพื่อความปลอดภัยเพิ่มขึ้นได้ครับ)
-        const CONFIG_PASSWORD = "your-password-here"; 
-        const DASHBOARD_PASSWORD = "your-password-here"; // รหัสผ่านสำหรับด่านสองเข้า Dashboard
+        // ย้ายการเช็ครหัสผ่านไปไว้ที่หลังบ้าน (app.py) ทั้งหมดแล้ว 
+        // ดังนั้นจึงลบตัวแปร CONFIG_PASSWORD และ DASHBOARD_PASSWORD ทิ้ง เพื่อความปลอดภัยสูงสุดครับ
 
         window.onload = function() {
             // บังคับแปลงเวลาเป็นสไตล์ไทย GMT+7 ตามที่แก้ไขรอบก่อนหน้า
@@ -211,16 +210,29 @@
         };
 
         // --- ระบบล็อกอินด่านที่ 1 (เข้าแอปปกติ) ---
-        function checkPassword() {
+        async function checkPassword() {
             const passwordInput = document.getElementById("password").value;
             const errorMsg = document.getElementById("errorMsg");
 
-            if (passwordInput === CONFIG_PASSWORD) {
-                sessionStorage.setItem("isLoggedIn", "true");
-                errorMsg.style.display = "none";
-                showApp();
-            } else {
-                errorMsg.style.display = "block";
+            try {
+                // ยิง API ไปเช็คที่หลังบ้านฝั่ง Python
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: passwordInput })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionStorage.setItem("isLoggedIn", "true");
+                    errorMsg.style.display = "none";
+                    showApp();
+                } else {
+                    errorMsg.style.display = "block";
+                }
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+            } finally {
                 document.getElementById("password").value = "";
             }
         }
@@ -238,28 +250,40 @@
             document.getElementById("dbPassword").focus();
         }
 
-        function checkDashboardPassword() {
+        async function checkDashboardPassword() {
             const dbPasswordInput = document.getElementById("dbPassword").value;
             const dbErrorMsg = document.getElementById("dbErrorMsg");
 
-            if (dbPasswordInput === DASHBOARD_PASSWORD) {
-                dbErrorMsg.style.display = "none";
-                document.getElementById("dbPassword").value = "";
-                
-                // ผ่านด่าน! ส่งกลับหน้าแอปหลัก และเปิดส่วน Dashboard ให้เห็น
-                document.getElementById("dashboardAuthGate").style.display = "none";
-                document.getElementById("mainApp").style.display = "block";
-                document.getElementById("dashboardSection").style.display = "block";
-                
-                // เปลี่ยนปุ่มกดด้านบนให้เป็นปุ่ม "ปิด Dashboard" แทน
-                const dbBtn = document.getElementById("goToDbBtn");
-                dbBtn.innerText = "📁 ปิด Dashboard";
-                dbBtn.setAttribute("onclick", "closeDashboard()");
+            try {
+                // ยิง API ไปเช็คที่หลังบ้านฝั่ง Python เช่นกัน (ใช้รหัสร่วมกันผ่าน Environment Variable บน Render)
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: dbPasswordInput })
+                });
+                const data = await response.json();
 
-                // เรียกฟังก์ชันวาดกราฟ
-                initDashboardChart();
-            } else {
-                dbErrorMsg.style.display = "block";
+                if (data.success) {
+                    dbErrorMsg.style.display = "none";
+                    
+                    // ผ่านด่าน! ส่งกลับหน้าแอปหลัก และเปิดส่วน Dashboard ให้เห็น
+                    document.getElementById("dashboardAuthGate").style.display = "none";
+                    document.getElementById("mainApp").style.display = "block";
+                    document.getElementById("dashboardSection").style.display = "block";
+                    
+                    // เปลี่ยนปุ่มกดด้านบนให้เป็นปุ่ม "ปิด Dashboard" แทน
+                    const dbBtn = document.getElementById("goToDbBtn");
+                    dbBtn.innerText = "📁 ปิด Dashboard";
+                    dbBtn.setAttribute("onclick", "closeDashboard()");
+
+                    // เรียกฟังก์ชันวาดกราฟ
+                    initDashboardChart();
+                } else {
+                    dbErrorMsg.style.display = "block";
+                }
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+            } finally {
                 document.getElementById("dbPassword").value = "";
             }
         }
