@@ -94,7 +94,19 @@ def api_data():
         return jsonify({"records": records})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+# เพิ่ม Route สำหรับตรวจสอบรหัสผ่าน Dashboard
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json() or {}
+    password = data.get("password")
+    
+    # ดึงรหัสผ่านที่ตั้งไว้จาก Render Environment
+    correct_password = os.environ.get("DASHBOARD_PASSWORD", "123456") # ถ้าไม่ได้ตั้งใน Render จะใช้ 123456 เป็นค่าเริ่มต้น
+    
+    if password == correct_password:
+        return jsonify({"success": True, "message": "เข้าสู่ระบบสำเร็จ"})
+    else:
+        return jsonify({"success": False, "message": "รหัสผ่านไม่ถูกต้อง"}), 401
 @app.route("/api/add", methods=["POST"])
 def api_add():
     if not sheet:

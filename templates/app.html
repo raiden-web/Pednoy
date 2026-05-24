@@ -115,120 +115,151 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);dis
 .loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--text3);gap:8px;font-size:14px;}
 .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 0.6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+
+/* AUTH SYSTEM CSS */
+.auth-hidden { display: none !important; }
+.login-screen { position: fixed; inset: 0; background: #1e293b; display: flex; flex-direction: column; items-center; justify-content: center; padding: 24px; z-index: 9999; }
+.login-box { background: #ffffff; padding: 24px; border-radius: 16px; width: 100%; max-w: 320px; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+.login-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #0f172a; }
+.login-input { width: 100%; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 12px; text-align: center; font-size: 18px; margin-bottom: 8px; outline: none; font-family: 'Sarabun', sans-serif; }
+.login-input:focus { border-color: var(--green); }
+.login-btn { width: 100%; padding: 12px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Sarabun', sans-serif; }
+.login-btn:active { opacity: 0.9; }
+.login-error { color: var(--red); font-size: 13px; margin-bottom: 12px; display: none; }
+.logout-btn { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 500; cursor: pointer; font-family: 'Sarabun', sans-serif; margin-left: 8px; }
 </style>
 </head>
 <body>
 
-<div class="safe-top"></div>
-
-<div class="header">
-  <div class="header-title">💰 บัญชีรายรับ-รายจ่าย</div>
-  <div class="header-date" id="headerDate"></div>
-</div>
-
-<div class="pages">
-
-  <!-- HOME -->
-  <div class="page active" id="page-home">
-    <div class="home-hero">
-      <div class="balance-label">กำไรสุทธิวันนี้</div>
-      <div class="balance-amount" id="heroProfit">฿0</div>
-      <div class="balance-sub" id="heroSub">กำลังโหลด...</div>
-    </div>
-    <div class="stats-row">
-      <div class="stat-box">
-        <div class="stat-box-label">💰 รายรับ</div>
-        <div class="stat-box-value income" id="homeIncome">—</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box-label">💸 รายจ่าย</div>
-        <div class="stat-box-value expense" id="homeExpense">—</div>
-      </div>
-    </div>
-    <div class="quick-btns">
-      <button class="quick-btn income" onclick="goAddTab('income')">+ เพิ่มรายรับ</button>
-      <button class="quick-btn expense" onclick="goAddTab('expense')">+ เพิ่มรายจ่าย</button>
-    </div>
-    <div class="recent-header">รายการล่าสุด</div>
-    <div class="recent-list" id="recentList">
-      <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-    </div>
-  </div>
-
-  <!-- ADD -->
-  <div class="page" id="page-add">
-    <div class="add-tabs">
-      <div class="add-tab active income" id="addTab-income" onclick="switchAddTab('income')">💰 รายรับ</div>
-      <div class="add-tab expense" id="addTab-expense" onclick="switchAddTab('expense')">💸 รายจ่าย</div>
-    </div>
-
-    <div id="addForm-income" class="add-form">
-      <div class="field">
-        <label>ชื่อสินค้า</label>
-        <input type="text" id="i-item" placeholder="เช่น ข้าวมันไก่" autocomplete="off">
-      </div>
-      <div class="field">
-        <label>จำนวน</label>
-        <input type="number" id="i-qty" placeholder="1" inputmode="numeric" value="1" min="1" oninput="calcAdd()">
-      </div>
-      <div class="field">
-        <label>ราคาต่อชิ้น (บาท)</label>
-        <input type="number" id="i-price" placeholder="0" inputmode="decimal" oninput="calcAdd()">
-      </div>
-      <div class="total-preview income">
-        <span class="total-preview-label income">รวมทั้งหมด</span>
-        <span class="total-preview-value income" id="i-total">฿0</span>
-      </div>
-      <button class="save-btn income" id="i-btn" onclick="saveIncome()">บันทึกรายรับ</button>
-    </div>
-
-    <div id="addForm-expense" class="add-form" style="display:none">
-      <div class="field">
-        <label>ชื่อรายการ</label>
-        <input type="text" id="e-item" placeholder="เช่น ค่าวัตถุดิบ" autocomplete="off">
-      </div>
-      <div class="field">
-        <label>จำนวนเงิน (บาท)</label>
-        <input type="number" id="e-amount" placeholder="0" inputmode="decimal" oninput="calcAdd()">
-      </div>
-      <div class="total-preview expense">
-        <span class="total-preview-label expense">รายจ่าย</span>
-        <span class="total-preview-value expense" id="e-total">฿0</span>
-      </div>
-      <button class="save-btn expense" id="e-btn" onclick="saveExpense()">บันทึกรายจ่าย</button>
-    </div>
-  </div>
-
-  <!-- HISTORY -->
-  <div class="page" id="page-history">
-    <div class="history-filter">
-      <div class="filter-chip active" onclick="setHistFilter('today',this)">วันนี้</div>
-      <div class="filter-chip" onclick="setHistFilter('week',this)">สัปดาห์นี้</div>
-      <div class="filter-chip" onclick="setHistFilter('month',this)">เดือนนี้</div>
-      <div class="filter-chip" onclick="setHistFilter('all',this)">ทั้งหมด</div>
-    </div>
-    <div class="history-list" id="historyList">
-      <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-    </div>
-  </div>
-
-</div>
-
-<!-- BOTTOM NAV -->
-<div class="bottom-nav">
-  <div class="nav-item active" id="nav-home" onclick="goPage('home')">
-    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span>หน้าหลัก</span>
-  </div>
-  <div class="nav-item" id="nav-add" onclick="goPage('add')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    <span>บันทึก</span>
-  </div>
-  <div class="nav-item" id="nav-history" onclick="goPage('history')">
-    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    <span>ประวัติ</span>
+<!-- ================= 1. หน้าจอ LOGIN GATE (เพิ่มใหม่นอกสุด) ================= -->
+<div id="loginGate" class="login-screen">
+  <div class="login-box">
+    <div class="login-title">🔒 กรอกรหัสผ่านเข้าใช้งาน</div>
+    <input type="password" id="appPassword" placeholder="รหัสผ่าน" class="login-input">
+    <div id="loginError" class="login-error">รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง</div>
+    <button onclick="checkAuth()" class="login-btn">ตกลง</button>
   </div>
 </div>
+
+<!-- ================= 2. แอปพลิเคชันเดิมของคุณทั้งหมด (ซ่อนไว้หลังกล่อง app-wrapper) ================= -->
+<div id="appWrapper" class="auth-hidden" style="height: 100%; display: flex; flex-direction: column;">
+
+  <div class="safe-top"></div>
+
+  <div class="header">
+    <div style="display: flex; align-items: center;">
+      <div class="header-title">💰 บัญชีรายรับ-รายจ่าย</div>
+      <!-- ปุ่มออกจากระบบเล็กๆ ข้างหัวข้อ -->
+      <button onclick="logOut()" class="logout-btn">ออกจากระบบ</button>
+    </div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+
+  <div class="pages">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="home-hero">
+        <div class="balance-label">กำไรสุทธิวันนี้</div>
+        <div class="balance-amount" id="heroProfit">฿0</div>
+        <div class="balance-sub" id="heroSub">กำลังโหลด...</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-box-label">💰 รายรับ</div>
+          <div class="stat-box-value income" id="homeIncome">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">💸 รายจ่าย</div>
+          <div class="stat-box-value expense" id="homeExpense">—</div>
+        </div>
+      </div>
+      <div class="quick-btns">
+        <button class="quick-btn income" onclick="goAddTab('income')">+ เพิ่มรายรับ</button>
+        <button class="quick-btn expense" onclick="goAddTab('expense')">+ เพิ่มรายจ่าย</button>
+      </div>
+      <div class="recent-header">รายการล่าสุด</div>
+      <div class="recent-list" id="recentList">
+        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <!-- ADD -->
+    <div class="page" id="page-add">
+      <div class="add-tabs">
+        <div class="add-tab active income" id="addTab-income" onclick="switchAddTab('income')">💰 รายรับ</div>
+        <div class="add-tab expense" id="addTab-expense" onclick="switchAddTab('expense')">💸 รายจ่าย</div>
+      </div>
+
+      <div id="addForm-income" class="add-form">
+        <div class="field">
+          <label>ชื่อสินค้า</label>
+          <input type="text" id="i-item" placeholder="เช่น ข้าวมันไก่" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>จำนวน</label>
+          <input type="number" id="i-qty" placeholder="1" inputmode="numeric" value="1" min="1" oninput="calcAdd()">
+        </div>
+        <div class="field">
+          <label>ราคาต่อชิ้น (บาท)</label>
+          <input type="number" id="i-price" placeholder="0" inputmode="decimal" oninput="calcAdd()">
+        </div>
+        <div class="total-preview income">
+          <span class="total-preview-label income">รวมทั้งหมด</span>
+          <span class="total-preview-value income" id="i-total">฿0</span>
+        </div>
+        <button class="save-btn income" id="i-btn" onclick="saveIncome()">บันทึกรายรับ</button>
+      </div>
+
+      <div id="addForm-expense" class="add-form" style="display:none">
+        <div class="field">
+          <label>ชื่อรายการ</label>
+          <input type="text" id="e-item" placeholder="เช่น ค่าวัตถุดิบ" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>จำนวนเงิน (บาท)</label>
+          <input type="number" id="e-amount" placeholder="0" inputmode="decimal" oninput="calcAdd()">
+        </div>
+        <div class="total-preview expense">
+          <span class="total-preview-label expense">รายจ่าย</span>
+          <span class="total-preview-value expense" id="e-total">฿0</span>
+        </div>
+        <button class="save-btn expense" id="e-btn" onclick="saveExpense()">บันทึกรายจ่าย</button>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div class="history-filter">
+        <div class="filter-chip active" onclick="setHistFilter('today',this)">วันนี้</div>
+        <div class="filter-chip" onclick="setHistFilter('week',this)">สัปดาห์นี้</div>
+        <div class="filter-chip" onclick="setHistFilter('month',this)">เดือนนี้</div>
+        <div class="filter-chip" onclick="setHistFilter('all',this)">ทั้งหมด</div>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="goPage('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>หน้าหลัก</span>
+    </div>
+    <div class="nav-item" id="nav-add" onclick="goPage('add')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>บันทึก</span>
+    </div>
+    <div class="nav-item" id="nav-history" onclick="goPage('history')">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>ประวัติ</span>
+    </div>
+  </div>
+
+</div> <!-- สิ้นสุดกล่อง app-wrapper -->
 
 <div class="toast" id="toast"></div>
 
@@ -434,8 +465,62 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
-loadData();
-setInterval(loadData, 60000);
+// ================= JAVASCRIPT ระบบตรวจสอบรหัสผ่าน (เพิ่มใหม่ท้ายสุด) =================
+
+// เช็คสถานะเมื่อโหลดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", () => {
+  if (localStorage.getItem("pednoy_authed") === "true") {
+    unlockApp();
+  }
+});
+
+// ตรวจสอบรหัสผ่านผ่าน API หลังบ้าน
+async function checkAuth() {
+  const passwordField = document.getElementById("appPassword");
+  const errorMsg = document.getElementById("loginError");
+  const pw = passwordField.value;
+
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ password: pw })
+    });
+
+    if (response.ok) {
+      localStorage.setItem("pednoy_authed", "true");
+      errorMsg.style.display = "none";
+      unlockApp();
+    } else {
+      errorMsg.style.display = "block";
+      passwordField.value = "";
+    }
+  } catch (e) {
+    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+  }
+}
+
+// ปลดล็อกหน้าแอปเดิม
+function unlockApp() {
+  document.getElementById("loginGate").style.display = "none";
+  document.getElementById("appWrapper").classList.remove("auth-hidden");
+  loadData();
+  setInterval(loadData, 60000);
+}
+
+// ฟังก์ชันสำหรับกดออกจากระบบ
+function logOut() {
+  localStorage.removeItem("pednoy_authed");
+  window.location.reload();
+}
+
+// ย้ายฟังก์ชันรันครั้งแรกไปเริ่มทำงานตอนล็อกอินผ่าน (ย้ายจากอันเดิมด้านบน)
+if (localStorage.getItem("pednoy_authed") !== "true") {
+  // บังคับหยุดโหลดหากยังไม่ได้ส่งรหัสผ่าน
+} else {
+  loadData();
+  setInterval(loadData, 60000);
+}
 </script>
 </body>
 </html>
