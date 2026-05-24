@@ -1,12 +1,8 @@
 print("NEW VERSION")
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 
 from linebot import LineBotApi, WebhookHandler
-from linebot.models import (
-    MessageEvent,
-    TextMessage,
-    TextSendMessage,
-)
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
@@ -42,13 +38,8 @@ else:
 sheet = None
 
 try:
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive"
-    ]
-
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     google_creds_raw = os.getenv("GOOGLE_CREDENTIALS")
-
     if google_creds_raw:
         google_creds = json.loads(google_creds_raw)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
@@ -57,42 +48,41 @@ try:
         print("✅ Google Sheets Connected")
     else:
         print("⚠️ GOOGLE_CREDENTIALS NOT FOUND")
-
 except Exception as e:
     print("❌ Google Sheets Error:", e)
-
-# =========================
-# USER STATE
-# =========================
 
 user_states = {}
 
 # =========================
-# HOME
+# ROUTES
 # =========================
 
 @app.route("/")
 def home():
     return "LINE BOT RUNNING"
 
-# =========================
-# DASHBOARD
-# =========================
+@app.route("/app")
+def pwa_app():
+    return render_template("app.html")
 
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html")
 
-# =========================
-# LIFF FORM
-# =========================
-
 @app.route("/liff")
 def liff_page():
     return render_template("liff.html", liff_id=LIFF_ID)
 
+@app.route("/manifest.json")
+def manifest():
+    return send_from_directory("static", "manifest.json")
+
+@app.route("/sw.js")
+def service_worker():
+    return send_from_directory("static", "sw.js", mimetype="application/javascript")
+
 # =========================
-# API - ดึงข้อมูลจาก Google Sheets
+# API
 # =========================
 
 @app.route("/api/data")
@@ -105,29 +95,19 @@ def api_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# =========================
-# API - บันทึกรายการจาก LIFF
-# =========================
-
 @app.route("/api/add", methods=["POST"])
 def api_add():
     if not sheet:
         return jsonify({"success": False, "error": "ยังไม่เชื่อม Google Sheets"}), 500
     try:
         data = request.get_json()
-        row_type = data.get("type")
-        item = data.get("item")
-        qty = data.get("qty", "-")
-        amount = data.get("amount")
-
         sheet.append_row([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            row_type,
-            item,
-            qty,
-            amount
+            data.get("type"),
+            data.get("item"),
+            data.get("qty", "-"),
+            data.get("amount")
         ])
-
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -140,7 +120,6 @@ def api_add():
 def callback():
     if not handler:
         return "LINE NOT CONFIGURED", 500
-
     signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
     handler.handle(body, signature)
@@ -151,126 +130,60 @@ def callback():
 # =========================
 
 if handler:
-
     @handler.add(MessageEvent, message=TextMessage)
     def handle_message(event):
-
         text = event.message.text.strip()
         user_id = event.source.user_id
-
         VALID_COMMANDS = ["เพิ่มรายรับ", "เพิ่มรายจ่าย", "สรุปวันนี้", "บันทึกรายการ"]
-
         if user_id not in user_states and text not in VALID_COMMANDS:
             return
-
         reply = ""
-
         try:
-
-            # =====================
-            # บันทึกรายการ → เปิด LIFF
-            # =====================
-
             if text == "บันทึกรายการ":
-                liff_url = f"https://liff.line.me/{LIFF_ID}"
-                reply = f"กดลิงก์นี้เพื่อบันทึกรายการ:\n{liff_url}"
-
-            # =====================
-            # เริ่มเพิ่มรายรับ
-            # =====================
+                app_url = "https://pednoyeiei.onrender.com/app"
+                reply = f"กดลิงก์นี้เพื่อเปิดแอปบันทึกรายการ:\n{app_url}"
 
             elif text == "เพิ่มรายรับ":
                 user_states[user_id] = {"step": "income_item"}
                 reply = "กรอกชื่อสินค้า"
 
-            elif (
-                user_id in user_states and
-                user_states[user_id]["step"] == "income_item"
-            ):
+            elif user_id in user_states and user_states[user_id]["step"] == "income_item":
                 user_states[user_id]["item"] = text
                 user_states[user_id]["step"] = "income_qty"
                 reply = "กรอกจำนวน"
 
-            elif (
-                user_id in user_states and
-                user_states[user_id]["step"] == "income_qty"
-            ):
+            elif user_id in user_states and user_states[user_id]["step"] == "income_qty":
                 user_states[user_id]["qty"] = text
                 user_states[user_id]["step"] = "income_amount"
                 reply = "กรอกราคา"
 
-            elif (
-                user_id in user_states and
-                user_states[user_id]["step"] == "income_amount"
-            ):
+            elif user_id in user_states and user_states[user_id]["step"] == "income_amount":
                 item = user_states[user_id]["item"]
                 qty = user_states[user_id]["qty"]
                 amount = text
-
                 if sheet:
-                    sheet.append_row([
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "รายรับ",
-                        item,
-                        qty,
-                        amount
-                    ])
-
+                    sheet.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "รายรับ", item, qty, amount])
                 del user_states[user_id]
-
-                reply = (
-                    f"✅ บันทึกรายรับสำเร็จ\n\n"
-                    f"สินค้า: {item}\n"
-                    f"จำนวน: {qty}\n"
-                    f"ยอดเงิน: {amount} บาท"
-                )
-
-            # =====================
-            # เริ่มเพิ่มรายจ่าย
-            # =====================
+                reply = f"✅ บันทึกรายรับสำเร็จ\n\nสินค้า: {item}\nจำนวน: {qty}\nยอดเงิน: {amount} บาท"
 
             elif text == "เพิ่มรายจ่าย":
                 user_states[user_id] = {"step": "expense_item"}
                 reply = "กรอกชื่อรายการ"
 
-            elif (
-                user_id in user_states and
-                user_states[user_id]["step"] == "expense_item"
-            ):
+            elif user_id in user_states and user_states[user_id]["step"] == "expense_item":
                 user_states[user_id]["item"] = text
                 user_states[user_id]["step"] = "expense_amount"
                 reply = "กรอกจำนวนเงิน"
 
-            elif (
-                user_id in user_states and
-                user_states[user_id]["step"] == "expense_amount"
-            ):
+            elif user_id in user_states and user_states[user_id]["step"] == "expense_amount":
                 item = user_states[user_id]["item"]
                 amount = text
-
                 if sheet:
-                    sheet.append_row([
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "รายจ่าย",
-                        item,
-                        "-",
-                        amount
-                    ])
-
+                    sheet.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "รายจ่าย", item, "-", amount])
                 del user_states[user_id]
-
-                reply = (
-                    f"✅ บันทึกรายจ่ายสำเร็จ\n\n"
-                    f"รายการ: {item}\n"
-                    f"ยอดเงิน: {amount} บาท"
-                )
-
-            # =====================
-            # สรุปวันนี้
-            # =====================
+                reply = f"✅ บันทึกรายจ่ายสำเร็จ\n\nรายการ: {item}\nยอดเงิน: {amount} บาท"
 
             elif text == "สรุปวันนี้":
-
                 if not sheet:
                     reply = "⚠️ ยังไม่เชื่อม Google Sheets"
                 else:
@@ -278,34 +191,20 @@ if handler:
                     income = 0
                     expense = 0
                     today = datetime.now().strftime("%Y-%m-%d")
-
                     for row in records:
                         if today in str(row.get("เวลา", "")):
                             if row.get("ประเภท") == "รายรับ":
                                 income += int(row.get("ยอดเงิน", 0))
                             elif row.get("ประเภท") == "รายจ่าย":
                                 expense += int(row.get("ยอดเงิน", 0))
-
                     profit = income - expense
-
-                    reply = (
-                        f"📊 สรุปวันนี้\n\n"
-                        f"💰 รายรับ:  {income:,} บาท\n"
-                        f"💸 รายจ่าย: {expense:,} บาท\n"
-                        f"📈 กำไร:    {profit:,} บาท"
-                    )
+                    reply = f"📊 สรุปวันนี้\n\n💰 รายรับ:  {income:,} บาท\n💸 รายจ่าย: {expense:,} บาท\n📈 กำไร:    {profit:,} บาท"
 
             if reply:
-                line_bot_api.reply_message(
-                    event.reply_token,
-                    TextSendMessage(text=reply)
-                )
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
         except Exception as e:
-            line_bot_api.reply_message(
-                event.reply_token,
-                TextSendMessage(text=f"❌ ERROR:\n{str(e)}")
-            )
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=f"❌ ERROR:\n{str(e)}"))
 
 # =========================
 # RUN
