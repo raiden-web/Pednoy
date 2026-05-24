@@ -379,7 +379,7 @@ function filterByDate(f) {
   const today = new Date(); today.setHours(0,0,0,0);
   return allRecords.filter(r => {
     if (!r['เวลา']) return false;
-    const d = new Date(r['เวลา'].replace(' ','T'));
+    const d = new Date(r['เวลา'].replace(' ','T')+'Z');
     if (f === 'today') { const rd = new Date(d); rd.setHours(0,0,0,0); return rd.getTime() === today.getTime(); }
     if (f === 'week') { const w = new Date(today); w.setDate(w.getDate()-7); return d >= w; }
     if (f === 'month') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
@@ -405,8 +405,13 @@ function updateHome() {
   document.getElementById('recentList').innerHTML = recent.map(r => {
     const isInc = r['ประเภท'] === 'รายรับ';
     const amt = parseFloat(r['ยอดเงิน']||0);
-    const time = r['เวลา'] ? r['เวลา'].slice(11,16) : '';
-    const item = r['สินค้า/รายการ'] || r['item'] || '-';
+    let time = '';
+    if (r['เวลา']) {
+    // แปลงสตริงให้เป็นรูปแบบ ISO ที่รองรับ Timezone (เติม Z เข้าไปเพื่อให้รู้ว่าเป็น UTC)
+      const utcDate = new Date(r['เวลา'].replace(' ', 'T') + 'Z');
+    // ดึงเฉพาะ เวลา:นาที ออกมาเป็นรูปแบบไทย (เช่น 13:26)
+      time = utcDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
     return `<div class="recent-item">
       <div class="recent-icon ${isInc?'income':'expense'}">${isInc?'💰':'💸'}</div>
       <div class="recent-info">
@@ -445,7 +450,11 @@ function renderHistory() {
     rows.forEach(r => {
       const isInc = r['ประเภท'] === 'รายรับ';
       const amt = parseFloat(r['ยอดเงิน']||0);
-      const time = r['เวลา'] ? r['เวลา'].slice(11,16) : '';
+      let time = '';
+      if (r['เวลา']) {
+          const utcDate = new Date(r['เวลา'].replace(' ', 'T') + 'Z');
+          time = utcDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
       const item = r['สินค้า/รายการ'] || r['item'] || '-';
       html += `<div class="recent-item">
         <div class="recent-icon ${isInc?'income':'expense'}">${isInc?'💰':'💸'}</div>
