@@ -1,6 +1,6 @@
 {
-  "name": "รายรับ-รายจ่าย",
-  "short_name": "บัญชี",
+  "name": "Statement",
+  "short_name": "Statement",
   "description": "บันทึกรายรับรายจ่ายประจำวัน",
   "start_url": "/app",
   "display": "standalone",
