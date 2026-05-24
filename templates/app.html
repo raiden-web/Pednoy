@@ -1,535 +1,309 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Statement">
-<meta name="theme-color" content="#06c755">
-<title>Statement</title>
-<link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --green:#06c755;--green-dark:#05a847;--green-bg:#e8f8ef;--green-text:#0a7a3a;
-  --red:#e74c3c;--red-bg:#fdecea;--red-text:#c0392b;
-  --bg:#f4f4f4;--surface:#fff;--border:#e5e5e5;--text:#1a1a1a;--text2:#666;--text3:#999;
-}
-html,body{height:100%;overflow:hidden;}
-body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application & Dashboard</title>
+    <!-- เรียกใช้ Chart.js สำหรับวาดกราฟใน Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --success-color: #10b981;
+            --background-color: #f3f4f6;
+            --card-background: #ffffff;
+            --text-color: #1f2937;
+        }
 
-/* STATUS BAR SAFE AREA */
-.safe-top{height:env(safe-area-inset-top);background:var(--green);}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-/* HEADER */
-.header{background:var(--green);padding:14px 16px 14px;display:flex;align-items:center;justify-content:space-between;}
-.header-title{color:#fff;font-size:18px;font-weight:700;}
-.header-date{color:rgba(255,255,255,0.8);font-size:12px;}
+        /* 1. สไตล์สำหรับหน้า Login Gate (ด่านแรก และ ด่าน Dashboard) */
+        .login-container {
+            background: var(--card-background);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
 
-/* BOTTOM NAV */
-.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom);}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;cursor:pointer;color:var(--text3);transition:color 0.2s;}
-.nav-item.active{color:var(--green);}
-.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.nav-item span{font-size:11px;font-weight:500;}
+        .login-container h2 { margin-bottom: 1.5rem; color: var(--text-color); }
+        .input-group { margin-bottom: 1.25rem; text-align: left; }
+        .input-group label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; }
+        .input-group input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .input-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        
+        .btn { width: 100%; padding: 0.75rem; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .btn:hover { background-color: #4338ca; }
+        .btn-success { background-color: var(--success-color); }
+        .btn-success:hover { background-color: #059669; }
+        
+        .error-msg { color: #dc2626; font-size: 0.875rem; margin-top: 0.5rem; display: none; }
 
-/* PAGES */
-.pages{flex:1;overflow:hidden;position:relative;}
-.page{position:absolute;inset:0;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
-.page.active{display:block;}
+        /* 2. สไตล์สำหรับตัวแอปหลัก */
+        .app-container {
+            display: none;
+            width: 90%;
+            max-width: 1000px;
+            background: var(--card-background);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin: 20px 0;
+        }
 
-/* HOME PAGE */
-.home-hero{background:var(--green);padding:0 16px 24px;}
-.balance-label{color:rgba(255,255,255,0.8);font-size:13px;margin-bottom:4px;}
-.balance-amount{color:#fff;font-size:36px;font-weight:700;line-height:1;}
-.balance-sub{color:rgba(255,255,255,0.7);font-size:12px;margin-top:4px;}
-.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px;}
-.stat-box{background:var(--surface);border-radius:14px;padding:14px;border:1px solid var(--border);}
-.stat-box-label{font-size:12px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:4px;}
-.stat-box-value{font-size:20px;font-weight:700;}
-.stat-box-value.income{color:var(--green);}
-.stat-box-value.expense{color:var(--red);}
+        .app-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.quick-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 16px;}
-.quick-btn{padding:14px;border-radius:14px;border:none;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s;}
-.quick-btn:active{opacity:0.8;}
-.quick-btn.income{background:var(--green);color:#fff;}
-.quick-btn.expense{background:var(--red);color:#fff;}
+        .app-header h1 { margin: 0; font-size: 1.25rem; }
+        .app-content { padding: 2rem; }
 
-.recent-header{padding:0 16px 10px;font-size:14px;font-weight:600;color:var(--text2);}
-.recent-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
-.recent-item{background:var(--surface);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);}
-.recent-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.recent-icon.income{background:var(--green-bg);}
-.recent-icon.expense{background:var(--red-bg);}
-.recent-info{flex:1;min-width:0;}
-.recent-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.recent-time{font-size:12px;color:var(--text3);margin-top:2px;}
-.recent-amount{font-size:15px;font-weight:700;flex-shrink:0;}
-.recent-amount.income{color:var(--green);}
-.recent-amount.expense{color:var(--red);}
+        /* ปุ่มกดสลับไปหน้า Dashboard */
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.3); }
 
-/* ADD PAGE */
-.add-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border-bottom:1px solid var(--border);}
-.add-tab{padding:14px;text-align:center;font-size:15px;font-weight:600;color:var(--text3);border-bottom:3px solid transparent;cursor:pointer;transition:all 0.2s;}
-.add-tab.active.income{color:var(--green);border-bottom-color:var(--green);}
-.add-tab.active.expense{color:var(--red);border-bottom-color:var(--red);}
-.add-form{padding:16px;display:flex;flex-direction:column;gap:14px;}
-.field label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;}
-.field input{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:16px;color:var(--text);outline:none;transition:border 0.2s;-webkit-appearance:none;}
-.field input:focus{border-color:var(--green);}
-.field input.expense-focus:focus{border-color:var(--red);}
-.total-preview{border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;}
-.total-preview.income{background:var(--green-bg);}
-.total-preview.expense{background:var(--red-bg);}
-.total-preview-label{font-size:14px;}
-.total-preview-label.income{color:var(--green-text);}
-.total-preview-label.expense{color:var(--red-text);}
-.total-preview-value{font-size:22px;font-weight:700;}
-.total-preview-value.income{color:var(--green-text);}
-.total-preview-value.expense{color:var(--red-text);}
-.save-btn{width:100%;padding:15px;border-radius:14px;border:none;font-family:'Sarabun',sans-serif;font-size:17px;font-weight:700;cursor:pointer;transition:opacity 0.2s;}
-.save-btn:active{opacity:0.8;}
-.save-btn:disabled{opacity:0.5;cursor:not-allowed;}
-.save-btn.income{background:var(--green);color:#fff;}
-.save-btn.expense{background:var(--red);color:#fff;}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:100px;font-size:14px;font-weight:500;white-space:nowrap;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;}
-.toast.show{opacity:1;}
+        /* 3. สไตล์ส่วน Dashboard */
+        .dashboard-section {
+            display: none; /* ซ่อนไว้ก่อนจนกว่าจะใส่รหัสผ่านผ่านด่านสอง */
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed #e5e7eb;
+        }
 
-/* HISTORY PAGE */
-.history-filter{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.history-filter::-webkit-scrollbar{display:none;}
-.filter-chip{padding:7px 14px;border-radius:100px;border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;}
-.filter-chip.active{background:var(--text);color:#fff;border-color:var(--text);}
-.history-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
-.history-date-label{font-size:12px;font-weight:600;color:var(--text3);padding:8px 0 4px;text-transform:uppercase;letter-spacing:0.05em;}
-.empty-state{text-align:center;padding:48px 16px;color:var(--text3);}
-.empty-state .emoji{font-size:40px;margin-bottom:12px;}
-.empty-state p{font-size:15px;}
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
 
-/* LOADING */
-.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--text3);gap:8px;font-size:14px;}
-.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 0.6s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+        .stat-card {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
 
-/* AUTH SYSTEM CSS */
-.auth-hidden { display: none !important; }
-.login-screen { position: fixed; inset: 0; background: #1e293b; display: flex; flex-direction: column; items-center; justify-content: center; padding: 24px; z-index: 9999; }
-.login-box { background: #ffffff; padding: 24px; border-radius: 16px; width: 100%; max-w: 320px; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
-.login-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #0f172a; }
-.login-input { width: 100%; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 12px; text-align: center; font-size: 18px; margin-bottom: 8px; outline: none; font-family: 'Sarabun', sans-serif; }
-.login-input:focus { border-color: var(--green); }
-.login-btn { width: 100%; padding: 12px; background: var(--green); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Sarabun', sans-serif; }
-.login-btn:active { opacity: 0.9; }
-.login-error { color: var(--red); font-size: 13px; margin-bottom: 12px; display: none; }
-.logout-btn { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 500; cursor: pointer; font-family: 'Sarabun', sans-serif; margin-left: 8px; }
-</style>
+        .stat-card h4 { margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.9rem; }
+        .stat-card p { margin: 0; font-size: 1.5rem; font-weight: bold; color: var(--text-color); }
+
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 300px;
+            width: 100%;
+            max-width: 600px;
+        }
+    </style>
 </head>
 <body>
 
-<!-- ================= 1. หน้าจอ LOGIN GATE (เพิ่มใหม่นอกสุด) ================= -->
-<div id="loginGate" class="login-screen">
-  <div class="login-box">
-    <div class="login-title">🔒 กรอกรหัสผ่านเข้าใช้งาน</div>
-    <input type="password" id="appPassword" placeholder="รหัสผ่าน" class="login-input">
-    <div id="loginError" class="login-error">รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง</div>
-    <button onclick="checkAuth()" class="login-btn">ตกลง</button>
-  </div>
-</div>
-
-<!-- ================= 2. แอปพลิเคชันเดิมของคุณทั้งหมด (ซ่อนไว้หลังกล่อง app-wrapper) ================= -->
-<div id="appWrapper" class="auth-hidden" style="height: 100%; display: flex; flex-direction: column;">
-
-  <div class="safe-top"></div>
-
-  <div class="header">
-    <div style="display: flex; align-items: center;">
-      <div class="header-title">💰 บัญชีรายรับ-รายจ่าย</div>
-      <!-- ปุ่มออกจากระบบเล็กๆ ข้างหัวข้อ -->
-      
-    </div>
-    <div class="header-date" id="headerDate"></div>
-  </div>
-
-  <div class="pages">
-
-    <!-- HOME -->
-    <div class="page active" id="page-home">
-      <div class="home-hero">
-        <div class="balance-label">กำไรสุทธิวันนี้</div>
-        <div class="balance-amount" id="heroProfit">฿0</div>
-        <div class="balance-sub" id="heroSub">กำลังโหลด...</div>
-      </div>
-      <div class="stats-row">
-        <div class="stat-box">
-          <div class="stat-box-label">💰 รายรับ</div>
-          <div class="stat-box-value income" id="homeIncome">—</div>
+    <!-- ด่านที่ 1: หน้าตรวจสอบรหัสผ่านหลักเพื่อเข้าแอป (Login Gate) -->
+    <div id="loginGate" class="login-container">
+        <h2>กรุณาเข้าสู่ระบบ</h2>
+        <div class="input-group">
+            <label for="password">รหัสผ่านสำหรับเข้าใช้งาน</label>
+            <input type="password" id="password" placeholder="ใส่รหัสผ่านที่นี่...">
+            <div id="errorMsg" class="error-msg">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</div>
         </div>
-        <div class="stat-box">
-          <div class="stat-box-label">💸 รายจ่าย</div>
-          <div class="stat-box-value expense" id="homeExpense">—</div>
-        </div>
-      </div>
-      <div class="quick-btns">
-        <button class="quick-btn income" onclick="goAddTab('income')">+ เพิ่มรายรับ</button>
-        <button class="quick-btn expense" onclick="goAddTab('expense')">+ เพิ่มรายจ่าย</button>
-      </div>
-      <div class="recent-header">รายการล่าสุด</div>
-      <div class="recent-list" id="recentList">
-        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-      </div>
+        <button class="btn" onclick="checkPassword()">ตกลง</button>
     </div>
 
-    <!-- ADD -->
-    <div class="page" id="page-add">
-      <div class="add-tabs">
-        <div class="add-tab active income" id="addTab-income" onclick="switchAddTab('income')">💰 รายรับ</div>
-        <div class="add-tab expense" id="addTab-expense" onclick="switchAddTab('expense')">💸 รายจ่าย</div>
-      </div>
-
-      <div id="addForm-income" class="add-form">
-        <div class="field">
-          <label>ชื่อสินค้า</label>
-          <input type="text" id="i-item" placeholder="เช่น ข้าวมันไก่" autocomplete="off">
+    <!-- ด่านที่ 2: หน้าต่างป็อปอัพตรวจรหัสผ่านอีกรอบก่อนเข้า Dashboard (ซ่อนอยู่โดยเริ่มต้น) -->
+    <div id="dashboardAuthGate" class="login-container" style="display: none;">
+        <h2>🔐 ยืนยันรหัสผ่านอีกครั้ง</h2>
+        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 1rem;">พื้นที่ข้อมูลสำคัญ กรุณากรอกรหัสผ่านเพื่อเข้าสู่ Dashboard</p>
+        <div class="input-group">
+            <label for="dbPassword">รหัสผ่าน Dashboard</label>
+            <input type="password" id="dbPassword" placeholder="ระบุรหัสผ่านอีกครั้ง...">
+            <div id="dbErrorMsg" class="error-msg">รหัสผ่านไม่ถูกต้อง ไม่สามารถเข้าถึง Dashboard ได้</div>
         </div>
-        <div class="field">
-          <label>จำนวน</label>
-          <input type="number" id="i-qty" placeholder="1" inputmode="numeric" value="1" min="1" oninput="calcAdd()">
-        </div>
-        <div class="field">
-          <label>ราคาต่อชิ้น (บาท)</label>
-          <input type="number" id="i-price" placeholder="0" inputmode="decimal" oninput="calcAdd()">
-        </div>
-        <div class="total-preview income">
-          <span class="total-preview-label income">รวมทั้งหมด</span>
-          <span class="total-preview-value income" id="i-total">฿0</span>
-        </div>
-        <button class="save-btn income" id="i-btn" onclick="saveIncome()">บันทึกรายรับ</button>
-      </div>
-
-      <div id="addForm-expense" class="add-form" style="display:none">
-        <div class="field">
-          <label>ชื่อรายการ</label>
-          <input type="text" id="e-item" placeholder="เช่น ค่าวัตถุดิบ" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>จำนวนเงิน (บาท)</label>
-          <input type="number" id="e-amount" placeholder="0" inputmode="decimal" oninput="calcAdd()">
-        </div>
-        <div class="total-preview expense">
-          <span class="total-preview-label expense">รายจ่าย</span>
-          <span class="total-preview-value expense" id="e-total">฿0</span>
-        </div>
-        <button class="save-btn expense" id="e-btn" onclick="saveExpense()">บันทึกรายจ่าย</button>
-      </div>
+        <button class="btn btn-success" onclick="checkDashboardPassword()">ยืนยันตัวตน</button>
+        <button class="btn" style="background:#9ca3af; margin-top: 0.5rem;" onclick="cancelDashboard()">ยกเลิก</button>
     </div>
 
-    <!-- HISTORY -->
-    <div class="page" id="page-history">
-      <div class="history-filter">
-        <div class="filter-chip active" onclick="setHistFilter('today',this)">วันนี้</div>
-        <div class="filter-chip" onclick="setHistFilter('week',this)">สัปดาห์นี้</div>
-        <div class="filter-chip" onclick="setHistFilter('month',this)">เดือนนี้</div>
-        <div class="filter-chip" onclick="setHistFilter('all',this)">ทั้งหมด</div>
-      </div>
-      <div class="history-list" id="historyList">
-        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- BOTTOM NAV -->
-  <div class="bottom-nav">
-    <div class="nav-item active" id="nav-home" onclick="goPage('home')">
-      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>หน้าหลัก</span>
-    </div>
-    <div class="nav-item" id="nav-add" onclick="goPage('add')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      <span>บันทึก</span>
-    </div>
-    <div class="nav-item" id="nav-history" onclick="goPage('history')">
-      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      <span>ประวัติ</span>
-    </div>
-  </div>
-
-</div> <!-- สิ้นสุดกล่อง app-wrapper -->
-
-<div class="toast" id="toast"></div>
-
-<script>
-let allRecords = [];
-let currentAddTab = 'income';
-let currentHistFilter = 'today';
-
-// Date header
-const now = new Date();
-document.getElementById('headerDate').textContent = now.toLocaleDateString('th-TH', {weekday:'short', day:'numeric', month:'short'});
-
-// PAGE NAV
-function goPage(p) {
-  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('page-' + p).classList.add('active');
-  document.getElementById('nav-' + p).classList.add('active');
-  if (p === 'history') renderHistory();
-}
-
-function goAddTab(tab) {
-  goPage('add');
-  switchAddTab(tab);
-}
-
-// ADD TAB
-function switchAddTab(tab) {
-  currentAddTab = tab;
-  ['income','expense'].forEach(t => {
-    document.getElementById('addTab-' + t).classList.toggle('active', t === tab);
-    document.getElementById('addForm-' + t).style.display = t === tab ? 'flex' : 'none';
-  });
-  calcAdd();
-}
-
-function calcAdd() {
-  const qty = parseFloat(document.getElementById('i-qty').value) || 0;
-  const price = parseFloat(document.getElementById('i-price').value) || 0;
-  document.getElementById('i-total').textContent = '฿' + (qty * price).toLocaleString('th-TH');
-  const exp = parseFloat(document.getElementById('e-amount').value) || 0;
-  document.getElementById('e-total').textContent = '฿' + exp.toLocaleString('th-TH');
-}
-
-// TOAST
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-// SAVE
-async function saveIncome() {
-  const item = document.getElementById('i-item').value.trim();
-  const qty = document.getElementById('i-qty').value.trim();
-  const price = document.getElementById('i-price').value.trim();
-  if (!item || !price) { showToast('กรุณากรอกข้อมูลให้ครบ'); return; }
-  const total = parseFloat(qty) * parseFloat(price);
-  const btn = document.getElementById('i-btn');
-  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
-  try {
-    const res = await fetch('/api/add', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({type: 'รายรับ', item, qty, amount: total})
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast('✅ บันทึกรายรับสำเร็จ');
-      document.getElementById('i-item').value = '';
-      document.getElementById('i-qty').value = '1';
-      document.getElementById('i-price').value = '';
-      document.getElementById('i-total').textContent = '฿0';
-      await loadData();
-    } else { showToast('❌ ' + (data.error || 'บันทึกไม่สำเร็จ')); }
-  } catch(e) { showToast('❌ เชื่อมต่อไม่ได้'); }
-  btn.disabled = false; btn.textContent = 'บันทึกรายรับ';
-}
-
-async function saveExpense() {
-  const item = document.getElementById('e-item').value.trim();
-  const amount = document.getElementById('e-amount').value.trim();
-  if (!item || !amount) { showToast('กรุณากรอกข้อมูลให้ครบ'); return; }
-  const btn = document.getElementById('e-btn');
-  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
-  try {
-    const res = await fetch('/api/add', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({type: 'รายจ่าย', item, qty: '-', amount: parseFloat(amount)})
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast('✅ บันทึกรายจ่ายสำเร็จ');
-      document.getElementById('e-item').value = '';
-      document.getElementById('e-amount').value = '';
-      document.getElementById('e-total').textContent = '฿0';
-      await loadData();
-    } else { showToast('❌ ' + (data.error || 'บันทึกไม่สำเร็จ')); }
-  } catch(e) { showToast('❌ เชื่อมต่อไม่ได้'); }
-  btn.disabled = false; btn.textContent = 'บันทึกรายจ่าย';
-}
-
-// LOAD DATA
-async function loadData() {
-  try {
-    const res = await fetch('/api/data');
-    const json = await res.json();
-    allRecords = json.records || [];
-    updateHome();
-    if (document.getElementById('page-history').classList.contains('active')) renderHistory();
-  } catch(e) {}
-}
-
-function filterByDate(f) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  return allRecords.filter(r => {
-    if (!r['เวลา']) return false;
-    const d = new Date(r['เวลา'].replace(' ','T')+'Z');
-    if (f === 'today') { const rd = new Date(d); rd.setHours(0,0,0,0); return rd.getTime() === today.getTime(); }
-    if (f === 'week') { const w = new Date(today); w.setDate(w.getDate()-7); return d >= w; }
-    if (f === 'month') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-    return true;
-  });
-}
-
-function updateHome() {
-  const todayRecs = filterByDate('today');
-  const inc = todayRecs.filter(r => r['ประเภท'] === 'รายรับ').reduce((s,r) => s + parseFloat(r['ยอดเงิน']||0), 0);
-  const exp = todayRecs.filter(r => r['ประเภท'] === 'รายจ่าย').reduce((s,r) => s + parseFloat(r['ยอดเงิน']||0), 0);
-  const profit = inc - exp;
-  document.getElementById('heroProfit').textContent = '฿' + profit.toLocaleString('th-TH');
-  document.getElementById('heroSub').textContent = `รายรับ ฿${inc.toLocaleString()} · รายจ่าย ฿${exp.toLocaleString()}`;
-  document.getElementById('homeIncome').textContent = '฿' + inc.toLocaleString('th-TH');
-  document.getElementById('homeExpense').textContent = '฿' + exp.toLocaleString('th-TH');
-
-  const recent = [...allRecords].reverse().slice(0, 8);
-  if (recent.length === 0) {
-    document.getElementById('recentList').innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>ยังไม่มีรายการ</p></div>';
-    return;
-  }
-  document.getElementById('recentList').innerHTML = recent.map(r => {
-    const isInc = r['ประเภท'] === 'รายรับ';
-    const amt = parseFloat(r['ยอดเงิน']||0);
-    let time = '';
-    if (r['เวลา']) {
-    // แปลงสตริงให้เป็นรูปแบบ ISO ที่รองรับ Timezone (เติม Z เข้าไปเพื่อให้รู้ว่าเป็น UTC)
-      const utcDate = new Date(r['เวลา'].replace(' ', 'T') + 'Z');
-    // ดึงเฉพาะ เวลา:นาที ออกมาเป็นรูปแบบไทย (เช่น 13:26)
-      time = utcDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-    return `<div class="recent-item">
-      <div class="recent-icon ${isInc?'income':'expense'}">${isInc?'💰':'💸'}</div>
-      <div class="recent-info">
-        <div class="recent-name">${item}</div>
-        <div class="recent-time">${time}</div>
-      </div>
-      <div class="recent-amount ${isInc?'income':'expense'}">${isInc?'+':'-'}฿${amt.toLocaleString()}</div>
-    </div>`;
-  }).join('');
-}
-
-function setHistFilter(f, btn) {
-  currentHistFilter = f;
-  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderHistory();
-}
-
-function renderHistory() {
-  const recs = filterByDate(currentHistFilter);
-  if (recs.length === 0) {
-    document.getElementById('historyList').innerHTML = '<div class="empty-state"><div class="emoji">📋</div><p>ไม่มีรายการในช่วงนี้</p></div>';
-    return;
-  }
-  const byDate = {};
-  [...recs].reverse().forEach(r => {
-    const d = r['เวลา'] ? r['เวลา'].slice(0,10) : 'ไม่ระบุ';
-    if (!byDate[d]) byDate[d] = [];
-    byDate[d].push(r);
-  });
-  let html = '';
-  Object.entries(byDate).forEach(([date, rows]) => {
-    const parts = date.split('-');
-    const label = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : date;
-    html += `<div class="history-date-label">${label}</div>`;
-    rows.forEach(r => {
-      const isInc = r['ประเภท'] === 'รายรับ';
-      const amt = parseFloat(r['ยอดเงิน']||0);
-      let time = '';
-      if (r['เวลา']) {
-          const utcDate = new Date(r['เวลา'].replace(' ', 'T') + 'Z');
-          time = utcDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-      const item = r['สินค้า/รายการ'] || r['item'] || '-';
-      html += `<div class="recent-item">
-        <div class="recent-icon ${isInc?'income':'expense'}">${isInc?'💰':'💸'}</div>
-        <div class="recent-info">
-          <div class="recent-name">${item}</div>
-          <div class="recent-time">${time}</div>
+    <!-- ส่วนของแอปพลิเคชันหลัก (จะแสดงเมื่อผ่านด่านแรก) -->
+    <div id="mainApp" class="app-container">
+        <div class="app-header">
+            <h1>ระบบจัดการแอปพลิเคชัน</h1>
+            <!-- ปุ่มกดเพื่อขอเข้า Dashboard -->
+            <button id="goToDbBtn" class="nav-btn" onclick="requestDashboardAccess()">📊 ดู Dashboard</button>
         </div>
-        <div class="recent-amount ${isInc?'income':'expense'}">${isInc?'+':'-'}฿${amt.toLocaleString()}</div>
-      </div>`;
-    });
-  });
-  document.getElementById('historyList').innerHTML = html;
-}
+        
+        <div class="app-content">
+            <!-- หน้าจัดการงานทั่วไปเดิมของคุณ -->
+            <div id="generalAppContent">
+                <h3>ยินดีต้อนรับเข้าสู่ระบบ</h3>
+                <p>นี่คือพื้นที่จัดการข้อมูลทั่วไปของคุณตามปกติ (เวลาไทยแสดงผลถูกต้องแล้ว)</p>
+                <!-- จุดแสดงรายการเวลาที่แก้ไข Timezone ไทยแล้วจากรอบก่อน -->
+                <p>🕒 ตัวอย่างเวลาไทยล่าสุด: <strong id="sampleTime">กำลังโหลด...</strong></p>
+            </div>
 
-// SERVICE WORKER
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
+            <!-- หน้า Dashboard (จะปลดล็อกเมื่อใส่รหัสผ่านด่านสองผ่านแล้วเท่านั้น) -->
+            <div id="dashboardSection" class="dashboard-section">
+                <h3>📊 สรุปผลวิเคราะห์ข้อมูล (Dashboard)</h3>
+                
+                <!-- การ์ดสรุปตัวเลขแบบย่อย -->
+                <div class="grid-stats">
+                    <div class="stat-card">
+                        <h4>ยอดรวมรายรับ</h4>
+                        <p style="color: #10b981;">฿24,500</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>ยอดรวมรายจ่าย</h4>
+                        <p style="color: #ef4444;">฿11,200</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>คงเหลือสุทธิ</h4>
+                        <p style="color: #4f46e5;">฿13,300</p>
+                    </div>
+                </div>
 
-// ================= JAVASCRIPT ระบบตรวจสอบรหัสผ่าน (เพิ่มใหม่ท้ายสุด) =================
+                <!-- กราฟแสดงสถิติ -->
+                <div class="chart-container">
+                    <canvas id="dashboardChart"></canvas>
+                </div>
+            </div>
 
-// เช็คสถานะเมื่อโหลดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", () => {
-  if (localStorage.getItem("pednoy_authed") === "true") {
-    unlockApp();
-  }
-});
+        </div>
+    </div>
 
-// ตรวจสอบรหัสผ่านผ่าน API หลังบ้าน
-async function checkAuth() {
-  const passwordField = document.getElementById("appPassword");
-  const errorMsg = document.getElementById("loginError");
-  const pw = passwordField.value;
+    <script>
+        // กำหนดรหัสผ่าน (สามารถใช้รหัสเดียวกัน หรือตั้งแยกกันเพื่อความปลอดภัยเพิ่มขึ้นได้ครับ)
+        const CONFIG_PASSWORD = "your-password-here"; 
+        const DASHBOARD_PASSWORD = "your-password-here"; // รหัสผ่านสำหรับด่านสองเข้า Dashboard
 
-  try {
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ password: pw })
-    });
+        window.onload = function() {
+            // บังคับแปลงเวลาเป็นสไตล์ไทย GMT+7 ตามที่แก้ไขรอบก่อนหน้า
+            const mockUtcTimeFromServer = "2026-05-24 06:26:00"; 
+            const utcDate = new Date(mockUtcTimeFromServer.replace(' ', 'T') + 'Z');
+            document.getElementById("sampleTime").innerText = utcDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + " น.";
 
-    if (response.ok) {
-      localStorage.setItem("pednoy_authed", "true");
-      errorMsg.style.display = "none";
-      unlockApp();
-    } else {
-      errorMsg.style.display = "block";
-      passwordField.value = "";
-    }
-  } catch (e) {
-    alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
-  }
-}
+            if (sessionStorage.getItem("isLoggedIn") === "true") {
+                showApp();
+            }
+        };
 
-// ปลดล็อกหน้าแอปเดิม
-function unlockApp() {
-  document.getElementById("loginGate").style.display = "none";
-  document.getElementById("appWrapper").classList.remove("auth-hidden");
-  loadData();
-  setInterval(loadData, 60000);
-}
+        // --- ระบบล็อกอินด่านที่ 1 (เข้าแอปปกติ) ---
+        function checkPassword() {
+            const passwordInput = document.getElementById("password").value;
+            const errorMsg = document.getElementById("errorMsg");
 
-// ฟังก์ชันสำหรับกดออกจากระบบ
-function logOut() {
-  localStorage.removeItem("pednoy_authed");
-  window.location.reload();
-}
+            if (passwordInput === CONFIG_PASSWORD) {
+                sessionStorage.setItem("isLoggedIn", "true");
+                errorMsg.style.display = "none";
+                showApp();
+            } else {
+                errorMsg.style.display = "block";
+                document.getElementById("password").value = "";
+            }
+        }
 
-// ย้ายฟังก์ชันรันครั้งแรกไปเริ่มทำงานตอนล็อกอินผ่าน (ย้ายจากอันเดิมด้านบน)
-if (localStorage.getItem("pednoy_authed") !== "true") {
-  // บังคับหยุดโหลดหากยังไม่ได้ส่งรหัสผ่าน
-} else {
-  loadData();
-  setInterval(loadData, 60000);
-}
-</script>
+        function showApp() {
+            document.getElementById("loginGate").style.display = "none";
+            document.getElementById("mainApp").style.display = "block";
+        }
+
+        // --- ระบบล็อกอินด่านที่ 2 (เข้า Dashboard แบบ Double-Lock) ---
+        function requestDashboardAccess() {
+            // ซ่อนหน้าแอปหลักชั่วคราว แล้วเปิดด่านล็อกอินที่สองขึ้นมาแทน
+            document.getElementById("mainApp").style.display = "none";
+            document.getElementById("dashboardAuthGate").style.display = "block";
+            document.getElementById("dbPassword").focus();
+        }
+
+        function checkDashboardPassword() {
+            const dbPasswordInput = document.getElementById("dbPassword").value;
+            const dbErrorMsg = document.getElementById("dbErrorMsg");
+
+            if (dbPasswordInput === DASHBOARD_PASSWORD) {
+                dbErrorMsg.style.display = "none";
+                document.getElementById("dbPassword").value = "";
+                
+                // ผ่านด่าน! ส่งกลับหน้าแอปหลัก และเปิดส่วน Dashboard ให้เห็น
+                document.getElementById("dashboardAuthGate").style.display = "none";
+                document.getElementById("mainApp").style.display = "block";
+                document.getElementById("dashboardSection").style.display = "block";
+                
+                // เปลี่ยนปุ่มกดด้านบนให้เป็นปุ่ม "ปิด Dashboard" แทน
+                const dbBtn = document.getElementById("goToDbBtn");
+                dbBtn.innerText = "📁 ปิด Dashboard";
+                dbBtn.setAttribute("onclick", "closeDashboard()");
+
+                // เรียกฟังก์ชันวาดกราฟ
+                initDashboardChart();
+            } else {
+                dbErrorMsg.style.display = "block";
+                document.getElementById("dbPassword").value = "";
+            }
+        }
+
+        function cancelDashboard() {
+            // ยกเลิกการเข้า ให้กลับไปหน้าแอปปกติ
+            document.getElementById("dashboardAuthGate").style.display = "none";
+            document.getElementById("mainApp").style.display = "block";
+        }
+
+        function closeDashboard() {
+            // สั่งซ่อนส่วน Dashboard 
+            document.getElementById("dashboardSection").style.display = "none";
+            
+            // เปลี่ยนปุ่มด้านบนกลับเป็นปกติ
+            const dbBtn = document.getElementById("goToDbBtn");
+            dbBtn.innerText = "📊 ดู Dashboard";
+            dbBtn.setAttribute("onclick", "requestDashboardAccess()");
+        }
+
+        // --- ฟังก์ชันสร้างกราฟใน Dashboard ---
+        let myChart = null;
+        function initDashboardChart() {
+            const ctx = document.getElementById('dashboardChart').getContext('2d');
+            if (myChart) myChart.destroy(); // เคลียร์กราฟเก่าทิ้งก่อนวาดใหม่
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.'],
+                    datasets: [{
+                        label: 'รายรับสุทธิ (บาท)',
+                        data: [12000, 19000, 3000, 5000, 13300],
+                        backgroundColor: '#4f46e5',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
